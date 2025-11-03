@@ -30,8 +30,8 @@ fn sum_axis(tensor: &Tensor, axis: usize) -> Result<Tensor, String> {
     // Simple implementation - in practice would be much more optimized
     match tensor.dtype() {
         F32 => {
-            let tensor_data = tensor.data_as_slice::<f32>();
-            let result_data = result.data_as_slice_mut::<f32>();
+            let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
             // This is a simplified implementation for 2D tensors
             if tensor.ndim() == 2 {
@@ -61,8 +61,8 @@ fn sum_axis(tensor: &Tensor, axis: usize) -> Result<Tensor, String> {
             }
         }
         F64 => {
-            let tensor_data = tensor.data_as_slice::<f64>();
-            let result_data = result.data_as_slice_mut::<f64>();
+            let tensor_data = unsafe { tensor.data_as_slice::<f64>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f64>() };
 
             // Simplified 2D implementation
             if tensor.ndim() == 2 {
@@ -101,8 +101,8 @@ fn sum_all(tensor: &Tensor) -> Result<Tensor, String> {
 
     match tensor.dtype() {
         F32 => {
-            let tensor_data = tensor.data_as_slice::<f32>();
-            let result_data = result.data_as_slice_mut::<f32>();
+            let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
             let mut sum = 0.0f32;
             for &val in tensor_data {
@@ -111,8 +111,8 @@ fn sum_all(tensor: &Tensor) -> Result<Tensor, String> {
             result_data[0] = sum;
         }
         F64 => {
-            let tensor_data = tensor.data_as_slice::<f64>();
-            let result_data = result.data_as_slice_mut::<f64>();
+            let tensor_data = unsafe { tensor.data_as_slice::<f64>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f64>() };
 
             let mut sum = 0.0f64;
             for &val in tensor_data {
@@ -137,13 +137,13 @@ pub fn mean(tensor: &Tensor, axis: Option<usize>) -> Result<Tensor, String> {
     // Divide sum by count
     match tensor.dtype() {
         F32 => {
-            let data = sum_result.data_as_slice_mut::<f32>();
+            let data = unsafe { sum_result.data_as_slice_mut::<f32>() };
             for val in data.iter_mut() {
                 *val /= count as f32;
             }
         }
         F64 => {
-            let data = sum_result.data_as_slice_mut::<f64>();
+            let data = unsafe { sum_result.data_as_slice_mut::<f64>() };
             for val in data.iter_mut() {
                 *val /= count;
             }
@@ -181,8 +181,8 @@ fn max_axis(tensor: &Tensor, axis: usize) -> Result<Tensor, String> {
 
     match tensor.dtype() {
         F32 => {
-            let tensor_data = tensor.data_as_slice::<f32>();
-            let result_data = result.data_as_slice_mut::<f32>();
+            let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
             if tensor.ndim() == 2 {
                 let (rows, cols) = (tensor.shape().dim(0), tensor.shape().dim(1));
@@ -220,8 +220,8 @@ fn max_all(tensor: &Tensor) -> Result<Tensor, String> {
 
     match tensor.dtype() {
         F32 => {
-            let tensor_data = tensor.data_as_slice::<f32>();
-            let result_data = result.data_as_slice_mut::<f32>();
+            let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
             let mut max_val = f32::NEG_INFINITY;
             for &val in tensor_data {
@@ -230,8 +230,8 @@ fn max_all(tensor: &Tensor) -> Result<Tensor, String> {
             result_data[0] = max_val;
         }
         F64 => {
-            let tensor_data = tensor.data_as_slice::<f64>();
-            let result_data = result.data_as_slice_mut::<f64>();
+            let tensor_data = unsafe { tensor.data_as_slice::<f64>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f64>() };
 
             let mut max_val = f64::NEG_INFINITY;
             for &val in tensor_data {
@@ -271,8 +271,8 @@ fn min_axis(tensor: &Tensor, axis: usize) -> Result<Tensor, String> {
 
     match tensor.dtype() {
         F32 => {
-            let tensor_data = tensor.data_as_slice::<f32>();
-            let result_data = result.data_as_slice_mut::<f32>();
+            let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
             if tensor.ndim() == 2 {
                 let (rows, cols) = (tensor.shape().dim(0), tensor.shape().dim(1));
@@ -308,8 +308,8 @@ fn min_all(tensor: &Tensor) -> Result<Tensor, String> {
 
     match tensor.dtype() {
         F32 => {
-            let tensor_data = tensor.data_as_slice::<f32>();
-            let result_data = result.data_as_slice_mut::<f32>();
+            let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
             let mut min_val = f32::INFINITY;
             for &val in tensor_data {
@@ -318,8 +318,8 @@ fn min_all(tensor: &Tensor) -> Result<Tensor, String> {
             result_data[0] = min_val;
         }
         F64 => {
-            let tensor_data = tensor.data_as_slice::<f64>();
-            let result_data = result.data_as_slice_mut::<f64>();
+            let tensor_data = unsafe { tensor.data_as_slice::<f64>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f64>() };
 
             let mut min_val = f64::INFINITY;
             for &val in tensor_data {
@@ -359,8 +359,8 @@ fn prod_axis(tensor: &Tensor, axis: usize) -> Result<Tensor, String> {
 
     match tensor.dtype() {
         F32 => {
-            let tensor_data = tensor.data_as_slice::<f32>();
-            let result_data = result.data_as_slice_mut::<f32>();
+            let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
             if tensor.ndim() == 2 {
                 let (rows, cols) = (tensor.shape().dim(0), tensor.shape().dim(1));
@@ -396,8 +396,8 @@ fn prod_all(tensor: &Tensor) -> Result<Tensor, String> {
 
     match tensor.dtype() {
         F32 => {
-            let tensor_data = tensor.data_as_slice::<f32>();
-            let result_data = result.data_as_slice_mut::<f32>();
+            let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
             let mut prod = 1.0f32;
             for &val in tensor_data {
@@ -406,8 +406,8 @@ fn prod_all(tensor: &Tensor) -> Result<Tensor, String> {
             result_data[0] = prod;
         }
         F64 => {
-            let tensor_data = tensor.data_as_slice::<f64>();
-            let result_data = result.data_as_slice_mut::<f64>();
+            let tensor_data = unsafe { tensor.data_as_slice::<f64>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f64>() };
 
             let mut prod = 1.0f64;
             for &val in tensor_data {

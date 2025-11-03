@@ -8,7 +8,7 @@ pub mod tensor;
 pub mod ops;
 pub mod reductions;
 
-pub use dtype::DType;
+pub use dtype::{DType, DTypeCandidate, BFloat16, QuantizedU8};
 pub use tensor::{Shape, Strides, Tensor};
 pub use ops::*;
 pub use reductions::*;

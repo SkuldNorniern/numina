@@ -17,18 +17,18 @@ pub fn add(a: &Tensor, b: &Tensor) -> Result<Tensor, String> {
 
     match a.dtype() {
         F32 => {
-            let a_data = a.data_as_slice::<f32>();
-            let b_data = b.data_as_slice::<f32>();
-            let result_data = result.data_as_slice_mut::<f32>();
+            let a_data = unsafe { a.data_as_slice::<f32>() };
+            let b_data = unsafe { b.data_as_slice::<f32>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
             for i in 0..a.len() {
                 result_data[i] = a_data[i] + b_data[i];
             }
         }
         F64 => {
-            let a_data = a.data_as_slice::<f64>();
-            let b_data = b.data_as_slice::<f64>();
-            let result_data = result.data_as_slice_mut::<f64>();
+            let a_data = unsafe { a.data_as_slice::<f64>() };
+            let b_data = unsafe { b.data_as_slice::<f64>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f64>() };
 
             for i in 0..a.len() {
                 result_data[i] = a_data[i] + b_data[i];
@@ -54,18 +54,18 @@ pub fn mul(a: &Tensor, b: &Tensor) -> Result<Tensor, String> {
 
     match a.dtype() {
         F32 => {
-            let a_data = a.data_as_slice::<f32>();
-            let b_data = b.data_as_slice::<f32>();
-            let result_data = result.data_as_slice_mut::<f32>();
+            let a_data = unsafe { a.data_as_slice::<f32>() };
+            let b_data = unsafe { b.data_as_slice::<f32>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
             for i in 0..a.len() {
                 result_data[i] = a_data[i] * b_data[i];
             }
         }
         F64 => {
-            let a_data = a.data_as_slice::<f64>();
-            let b_data = b.data_as_slice::<f64>();
-            let result_data = result.data_as_slice_mut::<f64>();
+            let a_data = unsafe { a.data_as_slice::<f64>() };
+            let b_data = unsafe { b.data_as_slice::<f64>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f64>() };
 
             for i in 0..a.len() {
                 result_data[i] = a_data[i] * b_data[i];
@@ -83,16 +83,16 @@ pub fn add_scalar(tensor: &Tensor, scalar: f64) -> Result<Tensor, String> {
 
     match tensor.dtype() {
         F32 => {
-            let tensor_data = tensor.data_as_slice::<f32>();
-            let result_data = result.data_as_slice_mut::<f32>();
+            let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
             for i in 0..tensor.len() {
                 result_data[i] = tensor_data[i] + scalar as f32;
             }
         }
         F64 => {
-            let tensor_data = tensor.data_as_slice::<f64>();
-            let result_data = result.data_as_slice_mut::<f64>();
+            let tensor_data = unsafe { tensor.data_as_slice::<f64>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f64>() };
 
             for i in 0..tensor.len() {
                 result_data[i] = tensor_data[i] + scalar;
@@ -110,16 +110,16 @@ pub fn exp(tensor: &Tensor) -> Result<Tensor, String> {
 
     match tensor.dtype() {
         F32 => {
-            let tensor_data = tensor.data_as_slice::<f32>();
-            let result_data = result.data_as_slice_mut::<f32>();
+            let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
             for i in 0..tensor.len() {
                 result_data[i] = tensor_data[i].exp();
             }
         }
         F64 => {
-            let tensor_data = tensor.data_as_slice::<f64>();
-            let result_data = result.data_as_slice_mut::<f64>();
+            let tensor_data = unsafe { tensor.data_as_slice::<f64>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f64>() };
 
             for i in 0..tensor.len() {
                 result_data[i] = tensor_data[i].exp();
@@ -137,16 +137,16 @@ pub fn log(tensor: &Tensor) -> Result<Tensor, String> {
 
     match tensor.dtype() {
         F32 => {
-            let tensor_data = tensor.data_as_slice::<f32>();
-            let result_data = result.data_as_slice_mut::<f32>();
+            let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
             for i in 0..tensor.len() {
                 result_data[i] = tensor_data[i].ln();
             }
         }
         F64 => {
-            let tensor_data = tensor.data_as_slice::<f64>();
-            let result_data = result.data_as_slice_mut::<f64>();
+            let tensor_data = unsafe { tensor.data_as_slice::<f64>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f64>() };
 
             for i in 0..tensor.len() {
                 result_data[i] = tensor_data[i].ln();
@@ -180,9 +180,9 @@ pub fn matmul(a: &Tensor, b: &Tensor) -> Result<Tensor, String> {
 
     match a.dtype() {
         F32 => {
-            let a_data = a.data_as_slice::<f32>();
-            let b_data = b.data_as_slice::<f32>();
-            let result_data = result.data_as_slice_mut::<f32>();
+            let a_data = unsafe { a.data_as_slice::<f32>() };
+            let b_data = unsafe { b.data_as_slice::<f32>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
             for i in 0..m {
                 for j in 0..n {
@@ -195,9 +195,9 @@ pub fn matmul(a: &Tensor, b: &Tensor) -> Result<Tensor, String> {
             }
         }
         F64 => {
-            let a_data = a.data_as_slice::<f64>();
-            let b_data = b.data_as_slice::<f64>();
-            let result_data = result.data_as_slice_mut::<f64>();
+            let a_data = unsafe { a.data_as_slice::<f64>() };
+            let b_data = unsafe { b.data_as_slice::<f64>() };
+            let result_data = unsafe { result.data_as_slice_mut::<f64>() };
 
             for i in 0..m {
                 for j in 0..n {

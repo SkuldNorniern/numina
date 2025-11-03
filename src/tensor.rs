@@ -1,7 +1,7 @@
 //! Tensor data structures and operations
 
 use std::fmt;
-use crate::DType;
+use crate::{DType, DTypeCandidate};
 
 /// Represents the shape of a tensor (dimensions)
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -152,7 +152,7 @@ impl Tensor {
     /// Create a new tensor from raw data
     pub fn new(data: Vec<u8>, shape: Shape, dtype: DType) -> Self {
         let len = shape.len();
-        let expected_size = len * dtype.size_bytes();
+        let expected_size = len * dtype.dtype_size_bytes();
 
         assert_eq!(data.len(), expected_size,
                   "Data size {} does not match expected size {} for shape {} and dtype {}",
@@ -193,7 +193,7 @@ impl Tensor {
     /// Create tensor filled with zeros
     pub fn zeros(dtype: DType, shape: Shape) -> Self {
         let len = shape.len();
-        let size_bytes = len * dtype.size_bytes();
+        let size_bytes = len * dtype.dtype_size_bytes();
         let data = vec![0u8; size_bytes];
 
         Self::new(data, shape, dtype)
@@ -202,7 +202,7 @@ impl Tensor {
     /// Create tensor filled with ones
     pub fn ones(dtype: DType, shape: Shape) -> Self {
         let len = shape.len();
-        let mut data = vec![0u8; len * dtype.size_bytes()];
+        let mut data = vec![0u8; len * dtype.dtype_size_bytes()];
 
         // Fill with appropriate representation of 1 for each dtype
         match dtype {
@@ -231,7 +231,7 @@ impl Tensor {
                 // Simple implementation - fill with 1s for now
                 // In practice, you'd need proper endianness handling
                 for i in 0..len {
-                    data[i * dtype.size_bytes()] = 1;
+                    data[i * dtype.dtype_size_bytes()] = 1;
                 }
             }
         }
@@ -306,23 +306,23 @@ impl Tensor {
     }
 
     /// Get raw data as slice (for internal operations)
-    pub(crate) fn data_as_slice<T>(&self) -> &[T] {
-        unsafe {
-            std::slice::from_raw_parts(
-                self.data.as_ptr() as *const T,
-                self.len
-            )
-        }
+    /// # Safety
+    /// T must match the actual data type stored in this tensor
+    pub(crate) unsafe fn data_as_slice<T>(&self) -> &[T] {
+        std::slice::from_raw_parts(
+            self.data.as_ptr() as *const T,
+            self.len
+        )
     }
 
     /// Get raw data as mutable slice (for internal operations)
-    pub(crate) fn data_as_slice_mut<T>(&mut self) -> &mut [T] {
-        unsafe {
-            std::slice::from_raw_parts_mut(
-                self.data.as_mut_ptr() as *mut T,
-                self.len
-            )
-        }
+    /// # Safety
+    /// T must match the actual data type stored in this tensor
+    pub(crate) unsafe fn data_as_slice_mut<T>(&mut self) -> &mut [T] {
+        std::slice::from_raw_parts_mut(
+            self.data.as_mut_ptr() as *mut T,
+            self.len
+        )
     }
 
     /// Reshape tensor (creates view if possible)
