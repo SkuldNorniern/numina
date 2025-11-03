@@ -1,7 +1,7 @@
 //! Tensor data structures and operations
 
 use std::fmt;
-use crate::{DType, DTypeCandidate};
+use crate::DType;
 
 /// Represents the shape of a tensor (dimensions)
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -54,8 +54,7 @@ impl Shape {
         }
 
         // Pad with leading dimensions of size 1
-        let self_padded = std::iter::repeat(1)
-            .take(other.ndim() - self.ndim())
+        let self_padded = std::iter::repeat_n(1, other.ndim() - self.ndim())
             .chain(self.0.iter().cloned());
 
         for (a, &b) in self_padded.zip(other.dims()) {
@@ -174,7 +173,7 @@ impl Tensor {
     where
         T: Copy + Into<DType>,
     {
-        let dtype = T::from(data[0]).into();
+        let dtype = data[0].into();
         let expected_len = shape.len();
 
         assert_eq!(data.len(), expected_len,
@@ -183,7 +182,7 @@ impl Tensor {
         let bytes = unsafe {
             std::slice::from_raw_parts(
                 data.as_ptr() as *const u8,
-                data.len() * std::mem::size_of::<T>()
+                std::mem::size_of_val(data)
             )
         };
 
@@ -308,22 +307,22 @@ impl Tensor {
     /// Get raw data as slice (for internal operations)
     /// # Safety
     /// T must match the actual data type stored in this tensor
-    pub(crate) unsafe fn data_as_slice<T>(&self) -> &[T] {
+    pub(crate) unsafe fn data_as_slice<T>(&self) -> &[T] { unsafe {
         std::slice::from_raw_parts(
             self.data.as_ptr() as *const T,
             self.len
         )
-    }
+    }}
 
     /// Get raw data as mutable slice (for internal operations)
     /// # Safety
     /// T must match the actual data type stored in this tensor
-    pub(crate) unsafe fn data_as_slice_mut<T>(&mut self) -> &mut [T] {
+    pub(crate) unsafe fn data_as_slice_mut<T>(&mut self) -> &mut [T] { unsafe {
         std::slice::from_raw_parts_mut(
             self.data.as_mut_ptr() as *mut T,
             self.len
         )
-    }
+    }}
 
     /// Reshape tensor (creates view if possible)
     pub fn reshape(self, new_shape: Shape) -> Result<Self, String> {
