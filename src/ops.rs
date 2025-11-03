@@ -1,6 +1,6 @@
 //! Element-wise tensor operations
 
-use crate::{Tensor, Shape, DType, F32, F64};
+use crate::{Tensor, Shape, DType};
 
 /// Element-wise addition
 pub fn add(a: &Tensor, b: &Tensor) -> Result<Tensor, String> {
@@ -16,7 +16,7 @@ pub fn add(a: &Tensor, b: &Tensor) -> Result<Tensor, String> {
     let mut result = Tensor::zeros(a.dtype(), a.shape().clone());
 
     match a.dtype() {
-        F32 => {
+        DType::F32 => {
             let a_data = unsafe { a.data_as_slice::<f32>() };
             let b_data = unsafe { b.data_as_slice::<f32>() };
             let result_data = unsafe { result.data_as_slice_mut::<f32>() };
@@ -25,7 +25,7 @@ pub fn add(a: &Tensor, b: &Tensor) -> Result<Tensor, String> {
                 result_data[i] = a_data[i] + b_data[i];
             }
         }
-        F64 => {
+        DType::F64 => {
             let a_data = unsafe { a.data_as_slice::<f64>() };
             let b_data = unsafe { b.data_as_slice::<f64>() };
             let result_data = unsafe { result.data_as_slice_mut::<f64>() };
@@ -53,7 +53,7 @@ pub fn mul(a: &Tensor, b: &Tensor) -> Result<Tensor, String> {
     let mut result = Tensor::zeros(a.dtype(), a.shape().clone());
 
     match a.dtype() {
-        F32 => {
+        DType::F32 => {
             let a_data = unsafe { a.data_as_slice::<f32>() };
             let b_data = unsafe { b.data_as_slice::<f32>() };
             let result_data = unsafe { result.data_as_slice_mut::<f32>() };
@@ -62,7 +62,7 @@ pub fn mul(a: &Tensor, b: &Tensor) -> Result<Tensor, String> {
                 result_data[i] = a_data[i] * b_data[i];
             }
         }
-        F64 => {
+        DType::F64 => {
             let a_data = unsafe { a.data_as_slice::<f64>() };
             let b_data = unsafe { b.data_as_slice::<f64>() };
             let result_data = unsafe { result.data_as_slice_mut::<f64>() };
@@ -82,7 +82,7 @@ pub fn add_scalar(tensor: &Tensor, scalar: f64) -> Result<Tensor, String> {
     let mut result = Tensor::zeros(tensor.dtype(), tensor.shape().clone());
 
     match tensor.dtype() {
-        F32 => {
+        DType::F32 => {
             let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
             let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
@@ -90,7 +90,7 @@ pub fn add_scalar(tensor: &Tensor, scalar: f64) -> Result<Tensor, String> {
                 result_data[i] = tensor_data[i] + scalar as f32;
             }
         }
-        F64 => {
+        DType::F64 => {
             let tensor_data = unsafe { tensor.data_as_slice::<f64>() };
             let result_data = unsafe { result.data_as_slice_mut::<f64>() };
 
@@ -109,7 +109,7 @@ pub fn exp(tensor: &Tensor) -> Result<Tensor, String> {
     let mut result = Tensor::zeros(tensor.dtype(), tensor.shape().clone());
 
     match tensor.dtype() {
-        F32 => {
+        DType::F32 => {
             let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
             let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
@@ -117,7 +117,7 @@ pub fn exp(tensor: &Tensor) -> Result<Tensor, String> {
                 result_data[i] = tensor_data[i].exp();
             }
         }
-        F64 => {
+        DType::F64 => {
             let tensor_data = unsafe { tensor.data_as_slice::<f64>() };
             let result_data = unsafe { result.data_as_slice_mut::<f64>() };
 
@@ -136,7 +136,7 @@ pub fn log(tensor: &Tensor) -> Result<Tensor, String> {
     let mut result = Tensor::zeros(tensor.dtype(), tensor.shape().clone());
 
     match tensor.dtype() {
-        F32 => {
+        DType::F32 => {
             let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
             let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
@@ -144,7 +144,7 @@ pub fn log(tensor: &Tensor) -> Result<Tensor, String> {
                 result_data[i] = tensor_data[i].ln();
             }
         }
-        F64 => {
+        DType::F64 => {
             let tensor_data = unsafe { tensor.data_as_slice::<f64>() };
             let result_data = unsafe { result.data_as_slice_mut::<f64>() };
 
@@ -179,7 +179,7 @@ pub fn matmul(a: &Tensor, b: &Tensor) -> Result<Tensor, String> {
     let mut result = Tensor::zeros(a.dtype(), result_shape);
 
     match a.dtype() {
-        F32 => {
+        DType::F32 => {
             let a_data = unsafe { a.data_as_slice::<f32>() };
             let b_data = unsafe { b.data_as_slice::<f32>() };
             let result_data = unsafe { result.data_as_slice_mut::<f32>() };
@@ -194,7 +194,7 @@ pub fn matmul(a: &Tensor, b: &Tensor) -> Result<Tensor, String> {
                 }
             }
         }
-        F64 => {
+        DType::F64 => {
             let a_data = unsafe { a.data_as_slice::<f64>() };
             let b_data = unsafe { b.data_as_slice::<f64>() };
             let result_data = unsafe { result.data_as_slice_mut::<f64>() };
@@ -240,7 +240,7 @@ mod tests {
 
         let result = matmul(&a, &b).unwrap();
         assert_eq!(result.shape(), &Shape::from([2, 2]));
-        assert_eq!(result.dtype(), F32);
+        assert_eq!(result.dtype(), crate::dtype::F32);
     }
 
     #[test]
@@ -249,6 +249,6 @@ mod tests {
         let result = exp(&a).unwrap();
 
         assert_eq!(result.shape(), &Shape::from([1]));
-        assert_eq!(result.dtype(), F32);
+        assert_eq!(result.dtype(), crate::dtype::F32);
     }
 }

@@ -393,7 +393,7 @@ impl fmt::Display for Tensor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::F32;
+    use crate::dtype;
 
     #[test]
     fn shape_creation() {
@@ -422,18 +422,18 @@ mod tests {
     #[test]
     fn tensor_zeros() {
         let shape = Shape::from([2, 3]);
-        let tensor = Tensor::zeros(F32, shape.clone());
+        let tensor = Tensor::zeros(dtype::F32, shape.clone());
         assert_eq!(tensor.shape(), &shape);
-        assert_eq!(tensor.dtype(), F32);
+        assert_eq!(tensor.dtype(), dtype::F32);
         assert_eq!(tensor.len(), 6);
     }
 
     #[test]
     fn tensor_ones() {
         let shape = Shape::from([2, 2]);
-        let tensor = Tensor::ones(F32, shape.clone());
+        let tensor = Tensor::ones(dtype::F32, shape.clone());
         assert_eq!(tensor.shape(), &shape);
-        assert_eq!(tensor.dtype(), F32);
+        assert_eq!(tensor.dtype(), dtype::F32);
         assert_eq!(tensor.len(), 4);
     }
 
@@ -443,7 +443,7 @@ mod tests {
         let shape = Shape::from([2, 2]);
         let tensor = Tensor::from_slice(&data, shape.clone());
         assert_eq!(tensor.shape(), &shape);
-        assert_eq!(tensor.dtype(), F32);
+        assert_eq!(tensor.dtype(), dtype::F32);
         assert_eq!(tensor.len(), 4);
     }
 
@@ -462,7 +462,7 @@ mod tests {
     #[test]
     fn tensor_display() {
         let shape = Shape::from([2, 3]);
-        let tensor = Tensor::zeros(F32, shape);
+        let tensor = Tensor::zeros(dtype::F32, shape);
         let display = format!("{}", tensor);
         assert!(display.contains("Tensor([2, 3], f32"));
     }

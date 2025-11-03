@@ -1,6 +1,6 @@
 //! Reduction operations (sum, mean, max, min, etc.)
 
-use crate::{Tensor, Shape, DType, F32, F64};
+use crate::{Tensor, Shape, DType};
 
 /// Sum reduction along specified axis (or all axes if None)
 pub fn sum(tensor: &Tensor, axis: Option<usize>) -> Result<Tensor, String> {
@@ -29,7 +29,7 @@ fn sum_axis(tensor: &Tensor, axis: usize) -> Result<Tensor, String> {
 
     // Simple implementation - in practice would be much more optimized
     match tensor.dtype() {
-        F32 => {
+        DType::F32 => {
             let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
             let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
@@ -60,7 +60,7 @@ fn sum_axis(tensor: &Tensor, axis: usize) -> Result<Tensor, String> {
                 return Err("Multi-dimensional sum_axis not implemented".to_string());
             }
         }
-        F64 => {
+        DType::F64 => {
             let tensor_data = unsafe { tensor.data_as_slice::<f64>() };
             let result_data = unsafe { result.data_as_slice_mut::<f64>() };
 
@@ -100,7 +100,7 @@ fn sum_all(tensor: &Tensor) -> Result<Tensor, String> {
     let mut result = Tensor::zeros(tensor.dtype(), Shape::from([1]));
 
     match tensor.dtype() {
-        F32 => {
+        DType::F32 => {
             let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
             let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
@@ -110,7 +110,7 @@ fn sum_all(tensor: &Tensor) -> Result<Tensor, String> {
             }
             result_data[0] = sum;
         }
-        F64 => {
+        DType::F64 => {
             let tensor_data = unsafe { tensor.data_as_slice::<f64>() };
             let result_data = unsafe { result.data_as_slice_mut::<f64>() };
 
@@ -136,13 +136,13 @@ pub fn mean(tensor: &Tensor, axis: Option<usize>) -> Result<Tensor, String> {
 
     // Divide sum by count
     match tensor.dtype() {
-        F32 => {
+        DType::F32 => {
             let data = unsafe { sum_result.data_as_slice_mut::<f32>() };
             for val in data.iter_mut() {
                 *val /= count as f32;
             }
         }
-        F64 => {
+        DType::F64 => {
             let data = unsafe { sum_result.data_as_slice_mut::<f64>() };
             for val in data.iter_mut() {
                 *val /= count;
@@ -180,7 +180,7 @@ fn max_axis(tensor: &Tensor, axis: usize) -> Result<Tensor, String> {
     let mut result = Tensor::zeros(tensor.dtype(), output_shape);
 
     match tensor.dtype() {
-        F32 => {
+        DType::F32 => {
             let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
             let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
@@ -219,7 +219,7 @@ fn max_all(tensor: &Tensor) -> Result<Tensor, String> {
     let mut result = Tensor::zeros(tensor.dtype(), Shape::from([1]));
 
     match tensor.dtype() {
-        F32 => {
+        DType::F32 => {
             let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
             let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
@@ -229,7 +229,7 @@ fn max_all(tensor: &Tensor) -> Result<Tensor, String> {
             }
             result_data[0] = max_val;
         }
-        F64 => {
+        DType::F64 => {
             let tensor_data = unsafe { tensor.data_as_slice::<f64>() };
             let result_data = unsafe { result.data_as_slice_mut::<f64>() };
 
@@ -270,7 +270,7 @@ fn min_axis(tensor: &Tensor, axis: usize) -> Result<Tensor, String> {
     let mut result = Tensor::zeros(tensor.dtype(), output_shape);
 
     match tensor.dtype() {
-        F32 => {
+        DType::F32 => {
             let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
             let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
@@ -307,7 +307,7 @@ fn min_all(tensor: &Tensor) -> Result<Tensor, String> {
     let mut result = Tensor::zeros(tensor.dtype(), Shape::from([1]));
 
     match tensor.dtype() {
-        F32 => {
+        DType::F32 => {
             let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
             let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
@@ -317,7 +317,7 @@ fn min_all(tensor: &Tensor) -> Result<Tensor, String> {
             }
             result_data[0] = min_val;
         }
-        F64 => {
+        DType::F64 => {
             let tensor_data = unsafe { tensor.data_as_slice::<f64>() };
             let result_data = unsafe { result.data_as_slice_mut::<f64>() };
 
@@ -358,7 +358,7 @@ fn prod_axis(tensor: &Tensor, axis: usize) -> Result<Tensor, String> {
     let mut result = Tensor::ones(tensor.dtype(), output_shape);
 
     match tensor.dtype() {
-        F32 => {
+        DType::F32 => {
             let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
             let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
@@ -395,7 +395,7 @@ fn prod_all(tensor: &Tensor) -> Result<Tensor, String> {
     let mut result = Tensor::ones(tensor.dtype(), Shape::from([1]));
 
     match tensor.dtype() {
-        F32 => {
+        DType::F32 => {
             let tensor_data = unsafe { tensor.data_as_slice::<f32>() };
             let result_data = unsafe { result.data_as_slice_mut::<f32>() };
 
@@ -405,7 +405,7 @@ fn prod_all(tensor: &Tensor) -> Result<Tensor, String> {
             }
             result_data[0] = prod;
         }
-        F64 => {
+        DType::F64 => {
             let tensor_data = unsafe { tensor.data_as_slice::<f64>() };
             let result_data = unsafe { result.data_as_slice_mut::<f64>() };
 
@@ -424,7 +424,7 @@ fn prod_all(tensor: &Tensor) -> Result<Tensor, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::F32;
+    use crate::dtype;
 
     #[test]
     fn test_sum_all() {
@@ -433,7 +433,7 @@ mod tests {
 
         let result = sum(&tensor, None).unwrap();
         assert_eq!(result.shape(), &Shape::from([1]));
-        assert_eq!(result.dtype(), F32);
+        assert_eq!(result.dtype(), dtype::F32);
     }
 
     #[test]
@@ -443,7 +443,7 @@ mod tests {
 
         let result = sum(&tensor, Some(0)).unwrap();
         assert_eq!(result.shape(), &Shape::from([2])); // Sum along axis 0
-        assert_eq!(result.dtype(), F32);
+        assert_eq!(result.dtype(), dtype::F32);
     }
 
     #[test]
@@ -453,7 +453,7 @@ mod tests {
 
         let result = mean(&tensor, None).unwrap();
         assert_eq!(result.shape(), &Shape::from([1]));
-        assert_eq!(result.dtype(), F32);
+        assert_eq!(result.dtype(), dtype::F32);
         // Mean of [1,2,3,4] = 2.5
     }
 
@@ -464,7 +464,7 @@ mod tests {
 
         let result = max(&tensor, None).unwrap();
         assert_eq!(result.shape(), &Shape::from([1]));
-        assert_eq!(result.dtype(), F32);
+        assert_eq!(result.dtype(), dtype::F32);
     }
 
     #[test]
@@ -474,6 +474,6 @@ mod tests {
 
         let result = min(&tensor, Some(1)).unwrap();
         assert_eq!(result.shape(), &Shape::from([2])); // Min along axis 1
-        assert_eq!(result.dtype(), F32);
+        assert_eq!(result.dtype(), dtype::F32);
     }
 }

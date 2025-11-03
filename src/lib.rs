@@ -39,14 +39,14 @@ pub fn eye(dtype: DType, n: usize) -> Tensor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::F32;
+    use crate::dtype;
 
     #[test]
     fn basic_tensor_creation() {
         let shape = Shape::from([2, 3]);
-        let tensor = zeros(F32, shape.clone());
+        let tensor = zeros(dtype::F32, shape.clone());
         assert_eq!(tensor.shape(), &shape);
-        assert_eq!(tensor.dtype(), F32);
+        assert_eq!(tensor.dtype(), dtype::F32);
     }
 
     #[test]
