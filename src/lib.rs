@@ -5,9 +5,13 @@
 
 pub mod dtype;
 pub mod tensor;
+pub mod ops;
+pub mod reductions;
 
 pub use dtype::DType;
 pub use tensor::{Shape, Strides, Tensor};
+pub use ops::*;
+pub use reductions::*;
 
 // Re-export commonly used types
 pub use DType::*;

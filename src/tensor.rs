@@ -305,6 +305,26 @@ impl Tensor {
         &self.strides
     }
 
+    /// Get raw data as slice (for internal operations)
+    pub(crate) fn data_as_slice<T>(&self) -> &[T] {
+        unsafe {
+            std::slice::from_raw_parts(
+                self.data.as_ptr() as *const T,
+                self.len
+            )
+        }
+    }
+
+    /// Get raw data as mutable slice (for internal operations)
+    pub(crate) fn data_as_slice_mut<T>(&mut self) -> &mut [T] {
+        unsafe {
+            std::slice::from_raw_parts_mut(
+                self.data.as_mut_ptr() as *mut T,
+                self.len
+            )
+        }
+    }
+
     /// Reshape tensor (creates view if possible)
     pub fn reshape(self, new_shape: Shape) -> Result<Self, String> {
         if new_shape.len() != self.len {
