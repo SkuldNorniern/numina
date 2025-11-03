@@ -1,6 +1,6 @@
 //! Reduction operations (sum, mean, max, min, etc.)
 
-use crate::{Tensor, Shape, DType};
+use crate::{DType, Shape, Tensor};
 
 /// Sum reduction along specified axis (or all axes if None)
 pub fn sum(tensor: &Tensor, axis: Option<usize>) -> Result<Tensor, String> {
@@ -13,7 +13,11 @@ pub fn sum(tensor: &Tensor, axis: Option<usize>) -> Result<Tensor, String> {
 /// Sum along a specific axis
 fn sum_axis(tensor: &Tensor, axis: usize) -> Result<Tensor, String> {
     if axis >= tensor.ndim() {
-        return Err(format!("Axis {} out of bounds for {}D tensor", axis, tensor.ndim()));
+        return Err(format!(
+            "Axis {} out of bounds for {}D tensor",
+            axis,
+            tensor.ndim()
+        ));
     }
 
     // Calculate output shape (remove the specified axis)
@@ -165,7 +169,11 @@ pub fn max(tensor: &Tensor, axis: Option<usize>) -> Result<Tensor, String> {
 /// Max along a specific axis
 fn max_axis(tensor: &Tensor, axis: usize) -> Result<Tensor, String> {
     if axis >= tensor.ndim() {
-        return Err(format!("Axis {} out of bounds for {}D tensor", axis, tensor.ndim()));
+        return Err(format!(
+            "Axis {} out of bounds for {}D tensor",
+            axis,
+            tensor.ndim()
+        ));
     }
 
     // Calculate output shape (remove the specified axis)
@@ -256,7 +264,11 @@ pub fn min(tensor: &Tensor, axis: Option<usize>) -> Result<Tensor, String> {
 /// Min along a specific axis
 fn min_axis(tensor: &Tensor, axis: usize) -> Result<Tensor, String> {
     if axis >= tensor.ndim() {
-        return Err(format!("Axis {} out of bounds for {}D tensor", axis, tensor.ndim()));
+        return Err(format!(
+            "Axis {} out of bounds for {}D tensor",
+            axis,
+            tensor.ndim()
+        ));
     }
 
     let mut output_dims = tensor.shape().dims().to_vec();
@@ -344,7 +356,11 @@ pub fn prod(tensor: &Tensor, axis: Option<usize>) -> Result<Tensor, String> {
 /// Product along a specific axis
 fn prod_axis(tensor: &Tensor, axis: usize) -> Result<Tensor, String> {
     if axis >= tensor.ndim() {
-        return Err(format!("Axis {} out of bounds for {}D tensor", axis, tensor.ndim()));
+        return Err(format!(
+            "Axis {} out of bounds for {}D tensor",
+            axis,
+            tensor.ndim()
+        ));
     }
 
     let mut output_dims = tensor.shape().dims().to_vec();

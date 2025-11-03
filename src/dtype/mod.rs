@@ -139,8 +139,17 @@ impl DType {
 
     /// Returns true if this is an integer type
     pub fn is_int(&self) -> bool {
-        matches!(self, DType::I8 | DType::I16 | DType::I32 | DType::I64 |
-                       DType::U8 | DType::U16 | DType::U32 | DType::U64)
+        matches!(
+            self,
+            DType::I8
+                | DType::I16
+                | DType::I32
+                | DType::I64
+                | DType::U8
+                | DType::U16
+                | DType::U32
+                | DType::U64
+        )
     }
 
     /// Returns true if this is a signed integer type

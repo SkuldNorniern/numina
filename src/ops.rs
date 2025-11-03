@@ -1,6 +1,6 @@
 //! Element-wise tensor operations
 
-use crate::{Tensor, Shape, DType};
+use crate::{DType, Shape, Tensor};
 
 /// Element-wise addition
 pub fn add(a: &Tensor, b: &Tensor) -> Result<Tensor, String> {
@@ -98,7 +98,12 @@ pub fn add_scalar(tensor: &Tensor, scalar: f64) -> Result<Tensor, String> {
                 result_data[i] = tensor_data[i] + scalar;
             }
         }
-        _ => return Err(format!("Scalar addition not implemented for {}", tensor.dtype())),
+        _ => {
+            return Err(format!(
+                "Scalar addition not implemented for {}",
+                tensor.dtype()
+            ));
+        }
     }
 
     Ok(result)

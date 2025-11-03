@@ -1,7 +1,7 @@
 //! Tensor data structures and operations
 
-use std::fmt;
 use crate::DType;
+use std::fmt;
 
 /// Represents the shape of a tensor (dimensions)
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -12,7 +12,10 @@ impl Shape {
     pub fn from(dimensions: impl Into<Vec<usize>>) -> Self {
         let dims = dimensions.into();
         assert!(!dims.is_empty(), "Shape cannot be empty");
-        assert!(dims.iter().all(|&d| d > 0), "All dimensions must be positive");
+        assert!(
+            dims.iter().all(|&d| d > 0),
+            "All dimensions must be positive"
+        );
         Shape(dims)
     }
 
@@ -54,8 +57,8 @@ impl Shape {
         }
 
         // Pad with leading dimensions of size 1
-        let self_padded = std::iter::repeat_n(1, other.ndim() - self.ndim())
-            .chain(self.0.iter().cloned());
+        let self_padded =
+            std::iter::repeat_n(1, other.ndim() - self.ndim()).chain(self.0.iter().cloned());
 
         for (a, &b) in self_padded.zip(other.dims()) {
             if a != 1 && a != b {
@@ -124,7 +127,8 @@ impl Strides {
 
     /// Calculate flat index from multi-dimensional indices
     pub fn flatten_index(&self, indices: &[usize]) -> usize {
-        indices.iter()
+        indices
+            .iter()
             .zip(self.0.iter())
             .map(|(&idx, &stride)| idx * stride)
             .sum()
@@ -140,11 +144,11 @@ impl Strides {
 /// Main tensor structure
 #[derive(Debug, Clone)]
 pub struct Tensor {
-    data: Vec<u8>,        // Raw byte storage
-    shape: Shape,        // Tensor dimensions
-    strides: Strides,    // Memory layout
-    dtype: DType,        // Data type
-    len: usize,          // Number of elements
+    data: Vec<u8>,    // Raw byte storage
+    shape: Shape,     // Tensor dimensions
+    strides: Strides, // Memory layout
+    dtype: DType,     // Data type
+    len: usize,       // Number of elements
 }
 
 impl Tensor {
@@ -153,9 +157,15 @@ impl Tensor {
         let len = shape.len();
         let expected_size = len * dtype.dtype_size_bytes();
 
-        assert_eq!(data.len(), expected_size,
-                  "Data size {} does not match expected size {} for shape {} and dtype {}",
-                  data.len(), expected_size, shape, dtype);
+        assert_eq!(
+            data.len(),
+            expected_size,
+            "Data size {} does not match expected size {} for shape {} and dtype {}",
+            data.len(),
+            expected_size,
+            shape,
+            dtype
+        );
 
         let strides = Strides::from_shape(&shape);
 
@@ -176,14 +186,16 @@ impl Tensor {
         let dtype = data[0].into();
         let expected_len = shape.len();
 
-        assert_eq!(data.len(), expected_len,
-                  "Data length {} does not match shape {}", data.len(), shape);
+        assert_eq!(
+            data.len(),
+            expected_len,
+            "Data length {} does not match shape {}",
+            data.len(),
+            shape
+        );
 
         let bytes = unsafe {
-            std::slice::from_raw_parts(
-                data.as_ptr() as *const u8,
-                std::mem::size_of_val(data)
-            )
+            std::slice::from_raw_parts(data.as_ptr() as *const u8, std::mem::size_of_val(data))
         };
 
         Self::new(bytes.to_vec(), shape, dtype)
@@ -211,7 +223,7 @@ impl Tensor {
                     std::ptr::copy_nonoverlapping(
                         ones.as_ptr() as *const u8,
                         data.as_mut_ptr(),
-                        data.len()
+                        data.len(),
                     );
                 }
             }
@@ -221,7 +233,7 @@ impl Tensor {
                     std::ptr::copy_nonoverlapping(
                         ones.as_ptr() as *const u8,
                         data.as_mut_ptr(),
-                        data.len()
+                        data.len(),
                     );
                 }
             }
@@ -253,7 +265,7 @@ impl Tensor {
                     let data = unsafe {
                         std::slice::from_raw_parts_mut(
                             tensor.data.as_mut_ptr() as *mut f32,
-                            tensor.len
+                            tensor.len,
                         )
                     };
                     data[idx] = 1.0;
@@ -262,7 +274,7 @@ impl Tensor {
                     let data = unsafe {
                         std::slice::from_raw_parts_mut(
                             tensor.data.as_mut_ptr() as *mut f64,
-                            tensor.len
+                            tensor.len,
                         )
                     };
                     data[idx] = 1.0;
@@ -307,27 +319,24 @@ impl Tensor {
     /// Get raw data as slice (for internal operations)
     /// # Safety
     /// T must match the actual data type stored in this tensor
-    pub(crate) unsafe fn data_as_slice<T>(&self) -> &[T] { unsafe {
-        std::slice::from_raw_parts(
-            self.data.as_ptr() as *const T,
-            self.len
-        )
-    }}
+    pub(crate) unsafe fn data_as_slice<T>(&self) -> &[T] {
+        unsafe { std::slice::from_raw_parts(self.data.as_ptr() as *const T, self.len) }
+    }
 
     /// Get raw data as mutable slice (for internal operations)
     /// # Safety
     /// T must match the actual data type stored in this tensor
-    pub(crate) unsafe fn data_as_slice_mut<T>(&mut self) -> &mut [T] { unsafe {
-        std::slice::from_raw_parts_mut(
-            self.data.as_mut_ptr() as *mut T,
-            self.len
-        )
-    }}
+    pub(crate) unsafe fn data_as_slice_mut<T>(&mut self) -> &mut [T] {
+        unsafe { std::slice::from_raw_parts_mut(self.data.as_mut_ptr() as *mut T, self.len) }
+    }
 
     /// Reshape tensor (creates view if possible)
     pub fn reshape(self, new_shape: Shape) -> Result<Self, String> {
         if new_shape.len() != self.len {
-            return Err(format!("Cannot reshape {} elements into {}", self.len, new_shape));
+            return Err(format!(
+                "Cannot reshape {} elements into {}",
+                self.len, new_shape
+            ));
         }
 
         Ok(Tensor {
@@ -352,21 +361,16 @@ impl Tensor {
         match self.dtype {
             DType::F32 => {
                 let old_data = unsafe {
-                    std::slice::from_raw_parts(
-                        self.data.as_ptr() as *const f32,
-                        self.len
-                    )
+                    std::slice::from_raw_parts(self.data.as_ptr() as *const f32, self.len)
                 };
                 let new_data_typed = unsafe {
-                    std::slice::from_raw_parts_mut(
-                        new_data.as_mut_ptr() as *mut f32,
-                        self.len
-                    )
+                    std::slice::from_raw_parts_mut(new_data.as_mut_ptr() as *mut f32, self.len)
                 };
 
                 for i in 0..self.shape.dim(0) {
                     for j in 0..self.shape.dim(1) {
-                        new_data_typed[j * self.shape.dim(0) + i] = old_data[i * self.shape.dim(1) + j];
+                        new_data_typed[j * self.shape.dim(0) + i] =
+                            old_data[i * self.shape.dim(1) + j];
                     }
                 }
             }
@@ -385,7 +389,18 @@ impl Tensor {
 
 impl fmt::Display for Tensor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Tensor({}, {}, {})", self.shape, self.dtype, self.strides.as_slice().iter().map(|&x| x.to_string()).collect::<Vec<_>>().join(", "))
+        write!(
+            f,
+            "Tensor({}, {}, {})",
+            self.shape,
+            self.dtype,
+            self.strides
+                .as_slice()
+                .iter()
+                .map(|&x| x.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
     }
 }
 

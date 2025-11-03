@@ -4,14 +4,17 @@
 //! designed as the foundation for high-performance computing in Rust.
 
 pub mod dtype;
-pub mod tensor;
 pub mod ops;
 pub mod reductions;
+pub mod tensor;
 
-pub use dtype::{DType, DTypeCandidate, BFloat16, QuantizedU8};
-pub use tensor::{Shape, Strides, Tensor};
+pub use dtype::{
+    DType, DTypeCandidate,
+    types::{BFloat16, QuantizedI4, QuantizedU8},
+};
 pub use ops::*;
 pub use reductions::*;
+pub use tensor::{Shape, Strides, Tensor};
 
 // Re-export commonly used types
 pub use DType::*;
