@@ -1,8 +1,6 @@
 //! Reduction operations (sum, mean, max, min, etc.)
 
-use crate::array::{
-    data_as_slice, data_as_slice_mut, ensure_host_accessible, NdArray,
-};
+use crate::array::{NdArray, data_as_slice, data_as_slice_mut, ensure_host_accessible};
 use crate::{DType, Shape};
 
 /// Sum reduction along specified axis (or all axes if None)
@@ -233,7 +231,10 @@ fn sum_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
             return Err(format!("Sum not supported for boolean type"));
         }
         DType::QI4 | DType::QU8 => {
-            return Err(format!("Sum not implemented for quantized types {}", array.dtype()));
+            return Err(format!(
+                "Sum not implemented for quantized types {}",
+                array.dtype()
+            ));
         }
     }
 
@@ -342,7 +343,10 @@ pub fn mean<A: NdArray>(array: &A, axis: Option<usize>) -> Result<Box<dyn NdArra
             return Err(format!("Mean not supported for boolean type"));
         }
         DType::QI4 | DType::QU8 => {
-            return Err(format!("Mean not implemented for quantized types {}", array.dtype()));
+            return Err(format!(
+                "Mean not implemented for quantized types {}",
+                array.dtype()
+            ));
         }
     }
 

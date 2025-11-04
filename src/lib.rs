@@ -11,8 +11,8 @@ pub mod sorting;
 
 pub use array::{Array, CpuBytesArray, NdArray, Shape, Strides};
 pub use dtype::{
-    types::{BFloat16, QuantizedI4, QuantizedU8},
     DType, DTypeCandidate, DTypeLike,
+    types::{BFloat16, QuantizedI4, QuantizedU8},
 };
 pub use ops::{
     abs, acos, add, add_scalar, asin, atan, cos, exp, log, matmul, mul, pow, sign, sin, sqrt, tan,
@@ -78,7 +78,10 @@ mod tests {
 
         // Test with CpuBytesArray
         let cpu_bytes = CpuBytesArray::new(
-            unsafe { std::slice::from_raw_parts(f32_data.as_ptr() as *const u8, f32_data.len() * 4).to_vec() },
+            unsafe {
+                std::slice::from_raw_parts(f32_data.as_ptr() as *const u8, f32_data.len() * 4)
+                    .to_vec()
+            },
             shape.clone(),
             F32,
         );

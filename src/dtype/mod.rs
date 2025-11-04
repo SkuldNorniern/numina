@@ -171,12 +171,18 @@ impl DType {
 
     /// Returns true if this is a signed integer type
     pub fn is_signed_int(&self) -> bool {
-        matches!(self, DType::I8 | DType::I16 | DType::I32 | DType::I64 | DType::QI4)
+        matches!(
+            self,
+            DType::I8 | DType::I16 | DType::I32 | DType::I64 | DType::QI4
+        )
     }
 
     /// Returns true if this is an unsigned integer type
     pub fn is_unsigned_int(&self) -> bool {
-        matches!(self, DType::U8 | DType::U16 | DType::U32 | DType::U64 | DType::QU8)
+        matches!(
+            self,
+            DType::U8 | DType::U16 | DType::U32 | DType::U64 | DType::QU8
+        )
     }
 
     /// Returns true if this is a signed type (for integers)

@@ -1,6 +1,9 @@
 //! Primitive type conversions for DType
 
-use super::{types::{BFloat16, QuantizedI4, QuantizedU8}, DType};
+use super::{
+    DType,
+    types::{BFloat16, QuantizedI4, QuantizedU8},
+};
 
 // Conversion traits
 impl From<f32> for DType {

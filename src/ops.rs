@@ -1,8 +1,8 @@
 //! Element-wise array operations built on the `NdArray` abstraction
 
 use crate::array::{
-    data_as_slice, data_as_slice_mut, ensure_binary_compat, ensure_host_accessible, CpuBytesArray,
-    NdArray,
+    CpuBytesArray, NdArray, data_as_slice, data_as_slice_mut, ensure_binary_compat,
+    ensure_host_accessible,
 };
 use crate::{DType, Shape};
 
@@ -130,7 +130,10 @@ where
             return Err(format!("Addition not supported for boolean type"));
         }
         DType::QI4 | DType::QU8 => {
-            return Err(format!("Addition not implemented for quantized types {}", a.dtype()));
+            return Err(format!(
+                "Addition not implemented for quantized types {}",
+                a.dtype()
+            ));
         }
     }
 
@@ -261,7 +264,10 @@ where
             return Err(format!("Multiplication not supported for boolean type"));
         }
         DType::QI4 | DType::QU8 => {
-            return Err(format!("Multiplication not implemented for quantized types {}", a.dtype()));
+            return Err(format!(
+                "Multiplication not implemented for quantized types {}",
+                a.dtype()
+            ));
         }
     }
 
@@ -342,7 +348,12 @@ pub fn exp<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
                 dst[i] = crate::BFloat16::from_f32(result_f32);
             }
         }
-        _ => return Err(format!("Exp only supported for floating point types, got {}", array.dtype())),
+        _ => {
+            return Err(format!(
+                "Exp only supported for floating point types, got {}",
+                array.dtype()
+            ));
+        }
     }
 
     Ok(result)
@@ -417,7 +428,12 @@ pub fn sqrt<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
                 dst[i] = crate::BFloat16::from_f32(result_f32);
             }
         }
-        _ => return Err(format!("Sqrt only supported for floating point types, got {}", array.dtype())),
+        _ => {
+            return Err(format!(
+                "Sqrt only supported for floating point types, got {}",
+                array.dtype()
+            ));
+        }
     }
 
     Ok(result)
@@ -709,13 +725,19 @@ pub fn abs<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
         }
         DType::U8 | DType::U16 | DType::U32 | DType::U64 => {
             // For unsigned types, abs is identity (no-op)
-            return Err(format!("Abs not needed for unsigned type {}", array.dtype()));
+            return Err(format!(
+                "Abs not needed for unsigned type {}",
+                array.dtype()
+            ));
         }
         DType::Bool => {
             return Err(format!("Abs not applicable for boolean type"));
         }
         DType::QI4 | DType::QU8 => {
-            return Err(format!("Abs not implemented for quantized types {}", array.dtype()));
+            return Err(format!(
+                "Abs not implemented for quantized types {}",
+                array.dtype()
+            ));
         }
     }
 
@@ -821,13 +843,19 @@ pub fn sign<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
         }
         DType::U8 | DType::U16 | DType::U32 | DType::U64 => {
             // For unsigned types, sign is always 1 or 0
-            return Err(format!("Sign not applicable for unsigned type {}", array.dtype()));
+            return Err(format!(
+                "Sign not applicable for unsigned type {}",
+                array.dtype()
+            ));
         }
         DType::Bool => {
             return Err(format!("Sign not applicable for boolean type"));
         }
         DType::QI4 | DType::QU8 => {
-            return Err(format!("Sign not implemented for quantized types {}", array.dtype()));
+            return Err(format!(
+                "Sign not implemented for quantized types {}",
+                array.dtype()
+            ));
         }
     }
 
@@ -905,8 +933,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::array::Array;
     use crate::Shape;
+    use crate::array::Array;
 
     #[test]
     fn test_add_array() {
