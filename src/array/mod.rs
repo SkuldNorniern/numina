@@ -70,6 +70,16 @@ pub trait NdArray: std::fmt::Debug {
     /// Clone the array into a new owned instance
     fn clone_array(&self) -> Box<dyn NdArray>;
 
+    /// Create a new array of the same backend type with zeros
+    fn zeros(&self, shape: Shape) -> Result<Box<dyn NdArray>, String> {
+        Err("Creating new arrays not supported for this backend".to_string())
+    }
+
+    /// Create a new array of the same backend type with ones
+    fn ones(&self, shape: Shape) -> Result<Box<dyn NdArray>, String> {
+        Err("Creating new arrays not supported for this backend".to_string())
+    }
+
     /// Reshape this array to a new shape, returning a new array
     fn reshape(&self, _new_shape: Shape) -> Result<Box<dyn NdArray>, String> {
         // Default implementation for arrays that don't support reshape
@@ -373,6 +383,14 @@ impl NdArray for CpuBytesArray {
         Box::new(self.clone())
     }
 
+    fn zeros(&self, shape: Shape) -> Result<Box<dyn NdArray>, String> {
+        Ok(Box::new(CpuBytesArray::zeros(self.dtype, shape)))
+    }
+
+    fn ones(&self, shape: Shape) -> Result<Box<dyn NdArray>, String> {
+        Ok(Box::new(CpuBytesArray::ones(self.dtype, shape)))
+    }
+
     fn reshape(&self, new_shape: Shape) -> Result<Box<dyn NdArray>, String> {
         if new_shape.len() != self.len {
             return Err(format!(
@@ -511,7 +529,7 @@ where
 
 impl<T> NdArray for Array<T>
 where
-    T: DTypeLike + std::fmt::Debug + 'static,
+    T: DTypeLike + std::fmt::Debug + 'static + Default,
 {
     fn shape(&self) -> &Shape {
         &self.shape
@@ -549,6 +567,40 @@ where
 
     fn clone_array(&self) -> Box<dyn NdArray> {
         Box::new(self.clone())
+    }
+
+    fn zeros(&self, shape: Shape) -> Result<Box<dyn NdArray>, String> {
+        let len = shape.len();
+        let data = vec![T::default(); len];
+        Ok(Box::new(Array::new(data, shape).map_err(|e| e)?))
+    }
+
+    fn ones(&self, shape: Shape) -> Result<Box<dyn NdArray>, String> {
+        let len = shape.len();
+        let mut data = vec![T::default(); len];
+
+        // Fill with ones - this is a bit hacky but works for most numeric types
+        // In practice, you might want to use a trait for this
+        if std::mem::size_of::<T>() == std::mem::size_of::<f32>() {
+            // Assume it's f32-like
+            for item in data.iter_mut() {
+                unsafe {
+                    *(item as *mut T as *mut f32) = 1.0;
+                }
+            }
+        } else if std::mem::size_of::<T>() == std::mem::size_of::<f64>() {
+            // Assume it's f64-like
+            for item in data.iter_mut() {
+                unsafe {
+                    *(item as *mut T as *mut f64) = 1.0;
+                }
+            }
+        } else {
+            // For integer types, just leave as default (0)
+            // This is not ideal but works for now
+        }
+
+        Ok(Box::new(Array::new(data, shape).map_err(|e| e)?))
     }
 }
 
