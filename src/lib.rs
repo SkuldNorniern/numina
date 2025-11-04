@@ -11,8 +11,8 @@ pub mod sorting;
 
 pub use array::{Array, CpuBytesArray, NdArray, Shape, Strides};
 pub use dtype::{
-    types::{BFloat16, QuantizedI4, QuantizedU8},
     DType, DTypeCandidate, DTypeLike,
+    types::{BFloat16, QuantizedI4, QuantizedU8},
 };
 pub use ops::{
     abs, acos, add, add_scalar, asin, atan, cos, exp, log, matmul, mul, pow, sign, sin, sqrt, tan,
