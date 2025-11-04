@@ -71,17 +71,17 @@ pub trait NdArray: std::fmt::Debug {
     fn clone_array(&self) -> Box<dyn NdArray>;
 
     /// Create a new array of the same backend type with zeros
-    fn zeros(&self, shape: Shape) -> Result<Box<dyn NdArray>, String> {
+    fn zeros(&self, _shape: Shape) -> Result<Box<dyn NdArray>, String> {
         Err("Creating new arrays not supported for this backend".to_string())
     }
 
     /// Create a new array of the same backend type with ones
-    fn ones(&self, shape: Shape) -> Result<Box<dyn NdArray>, String> {
+    fn ones(&self, _shape: Shape) -> Result<Box<dyn NdArray>, String> {
         Err("Creating new arrays not supported for this backend".to_string())
     }
 
     /// Create a new array of the same backend type with a specific dtype
-    fn new_array(&self, shape: Shape, dtype: DType) -> Result<Box<dyn NdArray>, String> {
+    fn new_array(&self, _shape: Shape, _dtype: DType) -> Result<Box<dyn NdArray>, String> {
         Err("Creating new arrays not supported for this backend".to_string())
     }
 
@@ -347,12 +347,6 @@ impl CpuBytesArray {
         &mut self.data
     }
 
-    /// Get mutable typed slice for internal operations
-    /// # Safety
-    /// T must match the actual dtype stored
-    pub(crate) unsafe fn data_as_slice_mut<T>(&mut self) -> &mut [T] {
-        unsafe { std::slice::from_raw_parts_mut(self.data.as_mut_ptr() as *mut T, self.len) }
-    }
 
     pub fn into_boxed(self) -> Box<dyn NdArray> {
         Box::new(self)

@@ -92,7 +92,7 @@ fn sort_axis<A: NdArray>(
                 if descending {
                     values.sort_by(|a, b| b.cmp(a));
                 } else {
-                    values.sort_by(|a, b| a.cmp(b));
+                    values.sort();
                 }
                 result_data.copy_from_slice(&values);
             }
@@ -106,7 +106,7 @@ fn sort_axis<A: NdArray>(
                 if descending {
                     values.sort_by(|a, b| b.cmp(a));
                 } else {
-                    values.sort_by(|a, b| a.cmp(b));
+                    values.sort();
                 }
                 result_data.copy_from_slice(&values);
             }
@@ -120,7 +120,7 @@ fn sort_axis<A: NdArray>(
                 if descending {
                     values.sort_by(|a, b| b.cmp(a));
                 } else {
-                    values.sort_by(|a, b| a.cmp(b));
+                    values.sort();
                 }
                 result_data.copy_from_slice(&values);
             }
@@ -134,7 +134,7 @@ fn sort_axis<A: NdArray>(
                 if descending {
                     values.sort_by(|a, b| b.cmp(a));
                 } else {
-                    values.sort_by(|a, b| a.cmp(b));
+                    values.sort();
                 }
                 result_data.copy_from_slice(&values);
             }
@@ -148,7 +148,7 @@ fn sort_axis<A: NdArray>(
                 if descending {
                     values.sort_by(|a, b| b.cmp(a));
                 } else {
-                    values.sort_by(|a, b| a.cmp(b));
+                    values.sort();
                 }
                 result_data.copy_from_slice(&values);
             }
@@ -162,7 +162,7 @@ fn sort_axis<A: NdArray>(
                 if descending {
                     values.sort_by(|a, b| b.cmp(a));
                 } else {
-                    values.sort_by(|a, b| a.cmp(b));
+                    values.sort();
                 }
                 result_data.copy_from_slice(&values);
             }
@@ -176,7 +176,7 @@ fn sort_axis<A: NdArray>(
                 if descending {
                     values.sort_by(|a, b| b.cmp(a));
                 } else {
-                    values.sort_by(|a, b| a.cmp(b));
+                    values.sort();
                 }
                 result_data.copy_from_slice(&values);
             }
@@ -190,13 +190,13 @@ fn sort_axis<A: NdArray>(
                 if descending {
                     values.sort_by(|a, b| b.cmp(a));
                 } else {
-                    values.sort_by(|a, b| a.cmp(b));
+                    values.sort();
                 }
                 result_data.copy_from_slice(&values);
             }
         }
         DType::Bool => {
-            return Err(format!("Sort not supported for boolean type"));
+            return Err("Sort not supported for boolean type".to_string());
         }
         DType::QI4 | DType::QU8 => {
             return Err(format!(
@@ -236,7 +236,7 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
             if descending {
                 values.sort_by(|a, b| b.cmp(a));
             } else {
-                values.sort_by(|a, b| a.cmp(b));
+                values.sort();
             }
             result_data.copy_from_slice(&values);
         }
@@ -248,7 +248,7 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
             if descending {
                 values.sort_by(|a, b| b.cmp(a));
             } else {
-                values.sort_by(|a, b| a.cmp(b));
+                values.sort();
             }
             result_data.copy_from_slice(&values);
         }
@@ -260,7 +260,7 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
             if descending {
                 values.sort_by(|a, b| b.cmp(a));
             } else {
-                values.sort_by(|a, b| a.cmp(b));
+                values.sort();
             }
             result_data.copy_from_slice(&values);
         }
@@ -272,7 +272,7 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
             if descending {
                 values.sort_by(|a, b| b.cmp(a));
             } else {
-                values.sort_by(|a, b| a.cmp(b));
+                values.sort();
             }
             result_data.copy_from_slice(&values);
         }
@@ -284,7 +284,7 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
             if descending {
                 values.sort_by(|a, b| b.cmp(a));
             } else {
-                values.sort_by(|a, b| a.cmp(b));
+                values.sort();
             }
             result_data.copy_from_slice(&values);
         }
@@ -296,7 +296,7 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
             if descending {
                 values.sort_by(|a, b| b.cmp(a));
             } else {
-                values.sort_by(|a, b| a.cmp(b));
+                values.sort();
             }
             result_data.copy_from_slice(&values);
         }
@@ -308,7 +308,7 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
             if descending {
                 values.sort_by(|a, b| b.cmp(a));
             } else {
-                values.sort_by(|a, b| a.cmp(b));
+                values.sort();
             }
             result_data.copy_from_slice(&values);
         }
@@ -320,12 +320,12 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
             if descending {
                 values.sort_by(|a, b| b.cmp(a));
             } else {
-                values.sort_by(|a, b| a.cmp(b));
+                values.sort();
             }
             result_data.copy_from_slice(&values);
         }
         DType::Bool => {
-            return Err(format!("Sort not supported for boolean type"));
+            return Err("Sort not supported for boolean type".to_string());
         }
         DType::QI4 | DType::QU8 => {
             return Err(format!(
@@ -439,7 +439,7 @@ pub fn argsort<A: NdArray>(
             }
         }
         DType::Bool => {
-            return Err(format!("Argsort not supported for boolean type"));
+            return Err("Argsort not supported for boolean type".to_string());
         }
         DType::QI4 | DType::QU8 => {
             return Err(format!(
@@ -549,7 +549,7 @@ where
             }
         }
         DType::Bool => {
-            return Err(format!("Where not supported for boolean type"));
+            return Err("Where not supported for boolean type".to_string());
         }
         DType::QI4 | DType::QU8 => {
             return Err(format!(
