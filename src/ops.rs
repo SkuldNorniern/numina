@@ -1,7 +1,11 @@
 //! Element-wise array operations built on the `NdArray` abstraction
 
 use crate::array::{
+<<<<<<< HEAD
     NdArray, data_as_slice, data_as_slice_mut, ensure_binary_compat,
+=======
+    CpuBytesArray, NdArray, data_as_slice, data_as_slice_mut, ensure_binary_compat,
+>>>>>>> b996c862c8d52a59d50b3035ebc36183885da337
     ensure_host_accessible,
 };
 use crate::{DType, Shape};
