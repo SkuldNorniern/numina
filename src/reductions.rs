@@ -1,7 +1,7 @@
 //! Reduction operations (sum, mean, max, min, etc.)
 
 use crate::array::{
-    CpuBytesArray, NdArray, data_as_slice, data_as_slice_mut, ensure_host_accessible,
+    data_as_slice, data_as_slice_mut, ensure_host_accessible, CpuBytesArray, NdArray,
 };
 use crate::{DType, Shape};
 
