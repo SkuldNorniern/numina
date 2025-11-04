@@ -3,18 +3,24 @@
 //! Numina provides a safe, efficient tensor library with ndarray-compatible API,
 //! designed as the foundation for high-performance computing in Rust.
 
+pub mod array;
 pub mod dtype;
 pub mod ops;
 pub mod reductions;
+pub mod sorting;
 pub mod tensor;
 
+pub use array::{Array, CpuBytesArray, NdArray, Shape, Strides};
 pub use dtype::{
-    DType, DTypeCandidate,
+    DType, DTypeCandidate, DTypeLike,
     types::{BFloat16, QuantizedI4, QuantizedU8},
 };
-pub use ops::*;
-pub use reductions::*;
-pub use tensor::{Shape, Strides, Tensor};
+pub use ops::{
+    add, mul, add_scalar, exp, log, sqrt, sin, cos, tan, asin, acos, atan, pow, abs, sign, matmul
+};
+pub use reductions::{sum, mean, max, min, prod};
+pub use sorting::{sort, argsort, where_condition};
+pub use tensor::Tensor;
 
 // Re-export commonly used types
 pub use DType::*;

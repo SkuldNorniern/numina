@@ -1,180 +1,24 @@
 //! Tensor data structures and operations
-
-use crate::DType;
 use std::fmt;
+use std::mem;
 
-/// Represents the shape of a tensor (dimensions)
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Shape(Vec<usize>);
+use crate::array::{Shape, Strides, Array, CpuBytesArray, NdArray, data_as_slice, data_as_slice_mut};
+use crate::dtype::DTypeLike;
+use crate::DType;
 
-impl Shape {
-    /// Create a new shape from a slice
-    pub fn from(dimensions: impl Into<Vec<usize>>) -> Self {
-        let dims = dimensions.into();
-        assert!(!dims.is_empty(), "Shape cannot be empty");
-        assert!(
-            dims.iter().all(|&d| d > 0),
-            "All dimensions must be positive"
-        );
-        Shape(dims)
-    }
 
-    /// Get the number of dimensions (rank)
-    pub fn ndim(&self) -> usize {
-        self.0.len()
-    }
-
-    /// Get the total number of elements
-    pub fn len(&self) -> usize {
-        self.0.iter().product()
-    }
-
-    /// Check if shape is empty
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    /// Get dimensions as slice
-    pub fn dims(&self) -> &[usize] {
-        &self.0
-    }
-
-    /// Get a specific dimension
-    pub fn dim(&self, index: usize) -> usize {
-        self.0[index]
-    }
-
-    /// Create a new shape with modified dimension
-    pub fn with_dim(mut self, index: usize, value: usize) -> Self {
-        self.0[index] = value;
-        self
-    }
-
-    /// Check if this shape is compatible with another for broadcasting
-    pub fn can_broadcast_to(&self, other: &Shape) -> bool {
-        if self.ndim() > other.ndim() {
-            return false;
-        }
-
-        // Pad with leading dimensions of size 1
-        let self_padded =
-            std::iter::repeat_n(1, other.ndim() - self.ndim()).chain(self.0.iter().cloned());
-
-        for (a, &b) in self_padded.zip(other.dims()) {
-            if a != 1 && a != b {
-                return false;
-            }
-        }
-
-        true
-    }
-}
-
-impl fmt::Display for Shape {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[")?;
-        for (i, &dim) in self.0.iter().enumerate() {
-            if i > 0 {
-                write!(f, ", ")?;
-            }
-            write!(f, "{}", dim)?;
-        }
-        write!(f, "]")
-    }
-}
-
-impl From<Vec<usize>> for Shape {
-    fn from(dims: Vec<usize>) -> Self {
-        Shape::from(dims)
-    }
-}
-
-impl From<&[usize]> for Shape {
-    fn from(dims: &[usize]) -> Self {
-        Shape::from(dims.to_vec())
-    }
-}
-
-impl<const N: usize> From<[usize; N]> for Shape {
-    fn from(dims: [usize; N]) -> Self {
-        Shape::from(dims.to_vec())
-    }
-}
-
-/// Represents memory layout strides
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Strides(Vec<usize>);
-
-impl Strides {
-    /// Create strides from shape (row-major/C order)
-    pub fn from_shape(shape: &Shape) -> Self {
-        let mut strides = vec![0; shape.ndim()];
-        let mut stride = 1;
-
-        // Row-major order (C-style)
-        for i in (0..shape.ndim()).rev() {
-            strides[i] = stride;
-            stride *= shape.dim(i);
-        }
-
-        Strides(strides)
-    }
-
-    /// Get strides as slice
-    pub fn as_slice(&self) -> &[usize] {
-        &self.0
-    }
-
-    /// Calculate flat index from multi-dimensional indices
-    pub fn flatten_index(&self, indices: &[usize]) -> usize {
-        indices
-            .iter()
-            .zip(self.0.iter())
-            .map(|(&idx, &stride)| idx * stride)
-            .sum()
-    }
-
-    /// Check if layout is contiguous
-    pub fn is_contiguous(&self, shape: &Shape) -> bool {
-        let expected = Strides::from_shape(shape);
-        self == &expected
-    }
-}
 
 /// Main tensor structure
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Tensor {
-    data: Vec<u8>,    // Raw byte storage
-    shape: Shape,     // Tensor dimensions
-    strides: Strides, // Memory layout
-    dtype: DType,     // Data type
-    len: usize,       // Number of elements
+    storage: Box<dyn NdArray>,
 }
 
 impl Tensor {
     /// Create a new tensor from raw data
     pub fn new(data: Vec<u8>, shape: Shape, dtype: DType) -> Self {
-        let len = shape.len();
-        let expected_size = len * dtype.dtype_size_bytes();
-
-        assert_eq!(
-            data.len(),
-            expected_size,
-            "Data size {} does not match expected size {} for shape {} and dtype {}",
-            data.len(),
-            expected_size,
-            shape,
-            dtype
-        );
-
-        let strides = Strides::from_shape(&shape);
-
         Tensor {
-            data,
-            shape,
-            strides,
-            dtype,
-            len,
+            storage: CpuBytesArray::new(data, shape, dtype).into_boxed(),
         }
     }
 
@@ -194,196 +38,289 @@ impl Tensor {
             shape
         );
 
-        let bytes = unsafe {
-            std::slice::from_raw_parts(data.as_ptr() as *const u8, std::mem::size_of_val(data))
-        };
+        let byte_len = data.len() * std::mem::size_of::<T>();
+        let mut bytes = Vec::<u8>::with_capacity(byte_len);
+        unsafe {
+            bytes.set_len(byte_len);
+            std::ptr::copy_nonoverlapping(
+                data.as_ptr() as *const u8,
+                bytes.as_mut_ptr(),
+                byte_len,
+            );
+        }
 
-        Self::new(bytes.to_vec(), shape, dtype)
+        Self::new(bytes, shape, dtype)
     }
 
     /// Create tensor filled with zeros
     pub fn zeros(dtype: DType, shape: Shape) -> Self {
-        let len = shape.len();
-        let size_bytes = len * dtype.dtype_size_bytes();
-        let data = vec![0u8; size_bytes];
-
-        Self::new(data, shape, dtype)
+        Tensor {
+            storage: CpuBytesArray::zeros(dtype, shape).into_boxed(),
+        }
     }
 
     /// Create tensor filled with ones
     pub fn ones(dtype: DType, shape: Shape) -> Self {
-        let len = shape.len();
-        let mut data = vec![0u8; len * dtype.dtype_size_bytes()];
-
-        // Fill with appropriate representation of 1 for each dtype
-        match dtype {
-            DType::F32 => {
-                let ones: Vec<f32> = vec![1.0; len];
-                unsafe {
-                    std::ptr::copy_nonoverlapping(
-                        ones.as_ptr() as *const u8,
-                        data.as_mut_ptr(),
-                        data.len(),
-                    );
-                }
-            }
-            DType::F64 => {
-                let ones: Vec<f64> = vec![1.0; len];
-                unsafe {
-                    std::ptr::copy_nonoverlapping(
-                        ones.as_ptr() as *const u8,
-                        data.as_mut_ptr(),
-                        data.len(),
-                    );
-                }
-            }
-            // For integer types, 1 is represented as 0x01 in little-endian
-            _ => {
-                // Simple implementation - fill with 1s for now
-                // In practice, you'd need proper endianness handling
-                for i in 0..len {
-                    data[i * dtype.dtype_size_bytes()] = 1;
-                }
-            }
+        Tensor {
+            storage: CpuBytesArray::ones(dtype, shape).into_boxed(),
         }
-
-        Self::new(data, shape, dtype)
     }
 
     /// Create identity matrix
     pub fn eye(dtype: DType, n: usize) -> Self {
-        let shape = Shape::from([n, n]);
-        let mut tensor = Self::zeros(dtype, shape);
-
-        // Set diagonal elements to 1
-        for i in 0..n {
-            // This is a simplified implementation
-            // Real implementation would need proper indexing
-            let idx = i * n + i;
-            match dtype {
-                DType::F32 => {
-                    let data = unsafe {
-                        std::slice::from_raw_parts_mut(
-                            tensor.data.as_mut_ptr() as *mut f32,
-                            tensor.len,
-                        )
-                    };
-                    data[idx] = 1.0;
-                }
-                DType::F64 => {
-                    let data = unsafe {
-                        std::slice::from_raw_parts_mut(
-                            tensor.data.as_mut_ptr() as *mut f64,
-                            tensor.len,
-                        )
-                    };
-                    data[idx] = 1.0;
-                }
-                _ => unimplemented!("Identity matrix for {} not implemented", dtype),
-            }
+        Tensor {
+            storage: CpuBytesArray::eye(dtype, n).into_boxed(),
         }
-
-        tensor
     }
 
     /// Get tensor shape
     pub fn shape(&self) -> &Shape {
-        &self.shape
+        self.storage.shape()
     }
 
     /// Get tensor data type
     pub fn dtype(&self) -> DType {
-        self.dtype
+        self.storage.dtype()
     }
 
     /// Get number of elements
     pub fn len(&self) -> usize {
-        self.len
+        self.storage.len()
     }
 
     /// Check if tensor is empty
     pub fn is_empty(&self) -> bool {
-        self.len == 0
+        self.storage.len() == 0
     }
 
     /// Get number of dimensions
     pub fn ndim(&self) -> usize {
-        self.shape.ndim()
+        self.storage.shape().ndim()
     }
 
     /// Get strides
     pub fn strides(&self) -> &Strides {
-        &self.strides
+        self.storage.strides()
+    }
+
+    /// Create a tensor from any NdArray implementation
+    pub fn from_ndarray(array: Box<dyn NdArray>) -> Self {
+        Tensor { storage: array }
+    }
+
+    /// Create a tensor from CpuBytesArray
+    pub fn from_cpu_bytes_array(array: CpuBytesArray) -> Self {
+        Tensor {
+            storage: array.into_boxed(),
+        }
+    }
+
+    /// Clone this tensor with its storage
+    pub fn clone_tensor(&self) -> Self {
+        Tensor {
+            storage: self.storage.clone_array(),
+        }
     }
 
     /// Get raw data as slice (for internal operations)
     /// # Safety
     /// T must match the actual data type stored in this tensor
+    #[allow(dead_code)]
     pub(crate) unsafe fn data_as_slice<T>(&self) -> &[T] {
-        unsafe { std::slice::from_raw_parts(self.data.as_ptr() as *const T, self.len) }
+        unsafe { data_as_slice::<T>(self.storage.as_ref()) }
     }
 
     /// Get raw data as mutable slice (for internal operations)
     /// # Safety
     /// T must match the actual data type stored in this tensor
     pub(crate) unsafe fn data_as_slice_mut<T>(&mut self) -> &mut [T] {
-        unsafe { std::slice::from_raw_parts_mut(self.data.as_mut_ptr() as *mut T, self.len) }
+        unsafe { data_as_slice_mut::<T>(self.storage.as_mut()) }
     }
 
-    /// Reshape tensor (creates view if possible)
+    /// Check if this tensor supports reshaping operations
+    pub fn can_reshape(&self) -> bool {
+        // For now, only CpuBytesArray supports reshape/transpose
+        // In the future, we could check for trait implementations
+        false // TODO: implement proper type checking
+    }
+
+    /// Reshape tensor (creates new storage if supported)
     pub fn reshape(self, new_shape: Shape) -> Result<Self, String> {
-        if new_shape.len() != self.len {
+        let reshaped_storage = self.storage.reshape(new_shape)?;
+        Ok(Tensor {
+            storage: reshaped_storage,
+        })
+    }
+
+    /// Transpose tensor (2D only, creates new storage if supported)
+    pub fn transpose(self) -> Result<Self, String> {
+        let transposed_storage = self.storage.transpose()?;
+        Ok(Tensor {
+            storage: transposed_storage,
+        })
+    }
+
+    /// Element-wise addition
+    pub fn add(&self, other: &Tensor) -> Result<Tensor, String> {
+        use crate::ops;
+        let result = ops::add(self, other)?;
+        Ok(Tensor::from_ndarray(result))
+    }
+
+    /// Element-wise multiplication
+    pub fn mul(&self, other: &Tensor) -> Result<Tensor, String> {
+        use crate::ops;
+        let result = ops::mul(self, other)?;
+        Ok(Tensor::from_ndarray(result))
+    }
+
+    /// Element-wise exponential
+    pub fn exp(&self) -> Result<Tensor, String> {
+        use crate::ops;
+        let result = ops::exp(self)?;
+        Ok(Tensor::from_ndarray(result))
+    }
+
+    /// Element-wise logarithm
+    pub fn log(&self) -> Result<Tensor, String> {
+        use crate::ops;
+        let result = ops::log(self)?;
+        Ok(Tensor::from_ndarray(result))
+    }
+
+    /// Element-wise square root
+    pub fn sqrt(&self) -> Result<Tensor, String> {
+        use crate::ops;
+        let result = ops::sqrt(self)?;
+        Ok(Tensor::from_ndarray(result))
+    }
+
+    /// Sum reduction
+    pub fn sum(&self, axis: Option<usize>) -> Result<Tensor, String> {
+        use crate::reductions;
+        let result = reductions::sum(self, axis)?;
+        Ok(Tensor::from_ndarray(result))
+    }
+
+    /// Mean reduction
+    pub fn mean(&self, axis: Option<usize>) -> Result<Tensor, String> {
+        use crate::reductions;
+        let result = reductions::mean(self, axis)?;
+        Ok(Tensor::from_ndarray(result))
+    }
+}
+
+impl NdArray for Tensor {
+    fn shape(&self) -> &Shape {
+        self.storage.shape()
+    }
+
+    fn strides(&self) -> &Strides {
+        self.storage.strides()
+    }
+
+    fn len(&self) -> usize {
+        self.storage.len()
+    }
+
+    fn dtype(&self) -> DType {
+        self.storage.dtype()
+    }
+
+    unsafe fn as_bytes(&self) -> &[u8] {
+        unsafe { self.storage.as_bytes() }
+    }
+
+    unsafe fn as_mut_bytes(&mut self) -> &mut [u8] {
+        unsafe { self.storage.as_mut_bytes() }
+    }
+
+    fn clone_array(&self) -> Box<dyn NdArray> {
+        self.storage.clone_array()
+    }
+}
+
+impl Tensor {
+    /// Borrowed conversion into a typed N-dimensional array
+    pub fn to_array<T>(&self) -> Result<Array<T>, String>
+    where
+        T: DTypeLike + Copy + std::fmt::Debug + 'static,
+    {
+        if self.dtype() != T::DTYPE {
             return Err(format!(
-                "Cannot reshape {} elements into {}",
-                self.len, new_shape
+                "Cannot convert tensor of dtype {} to array of {}",
+                self.dtype(),
+                T::DTYPE
             ));
         }
 
-        Ok(Tensor {
-            data: self.data,
-            shape: new_shape.clone(),
-            strides: Strides::from_shape(&new_shape),
-            dtype: self.dtype,
-            len: self.len,
-        })
+        if mem::size_of::<T>() != self.dtype().dtype_size_bytes() {
+            return Err(format!(
+                "Size mismatch converting {} to {} ({} bytes vs {} bytes)",
+                self.dtype(),
+                std::any::type_name::<T>(),
+                self.dtype().dtype_size_bytes(),
+                mem::size_of::<T>()
+            ));
+        }
+
+        let mut data = Vec::<T>::with_capacity(self.len());
+        unsafe {
+            data.set_len(self.len());
+            std::ptr::copy_nonoverlapping(
+                self.storage.as_bytes().as_ptr() as *const T,
+                data.as_mut_ptr(),
+                self.len(),
+            );
+        }
+
+        Ok(Array::from_raw_parts(
+            data,
+            self.storage.shape().clone(),
+            self.storage.strides().clone(),
+        ))
     }
 
-    /// Transpose tensor (2D only for now)
-    pub fn transpose(self) -> Result<Self, String> {
-        if self.ndim() != 2 {
-            return Err("Transpose only supported for 2D tensors".to_string());
+    /// Consume the tensor and convert it into a typed N-dimensional array
+    pub fn into_array<T>(self) -> Result<Array<T>, String>
+    where
+        T: DTypeLike + Copy + std::fmt::Debug + 'static,
+    {
+        if self.dtype() != T::DTYPE {
+            return Err(format!(
+                "Cannot convert tensor of dtype {} to array of {}",
+                self.dtype(),
+                T::DTYPE
+            ));
         }
 
-        let new_shape = Shape::from([self.shape.dim(1), self.shape.dim(0)]);
-        let mut new_data = vec![0u8; self.data.len()];
-
-        // Simple transpose implementation
-        match self.dtype {
-            DType::F32 => {
-                let old_data = unsafe {
-                    std::slice::from_raw_parts(self.data.as_ptr() as *const f32, self.len)
-                };
-                let new_data_typed = unsafe {
-                    std::slice::from_raw_parts_mut(new_data.as_mut_ptr() as *mut f32, self.len)
-                };
-
-                for i in 0..self.shape.dim(0) {
-                    for j in 0..self.shape.dim(1) {
-                        new_data_typed[j * self.shape.dim(0) + i] =
-                            old_data[i * self.shape.dim(1) + j];
-                    }
-                }
-            }
-            _ => return Err(format!("Transpose not implemented for {}", self.dtype)),
+        if mem::size_of::<T>() != self.dtype().dtype_size_bytes() {
+            return Err(format!(
+                "Size mismatch converting {} to {} ({} bytes vs {} bytes)",
+                self.dtype(),
+                std::any::type_name::<T>(),
+                self.dtype().dtype_size_bytes(),
+                mem::size_of::<T>()
+            ));
         }
 
-        Ok(Tensor {
-            data: new_data,
-            shape: new_shape.clone(),
-            strides: Strides::from_shape(&new_shape),
-            dtype: self.dtype,
-            len: self.len,
-        })
+        let Tensor { storage } = self;
+        let len = storage.len();
+        let mut data = Vec::<T>::with_capacity(len);
+        unsafe {
+            data.set_len(len);
+            std::ptr::copy_nonoverlapping(
+                storage.as_bytes().as_ptr() as *const T,
+                data.as_mut_ptr(),
+                len,
+            );
+        }
+
+        Ok(Array::from_raw_parts(
+            data,
+            storage.shape().clone(),
+            storage.strides().clone(),
+        ))
     }
 }
 
@@ -392,9 +329,10 @@ impl fmt::Display for Tensor {
         write!(
             f,
             "Tensor({}, {}, {})",
-            self.shape,
-            self.dtype,
-            self.strides
+            self.storage.shape(),
+            self.storage.dtype(),
+            self.storage
+                .strides()
                 .as_slice()
                 .iter()
                 .map(|&x| x.to_string())
@@ -408,6 +346,7 @@ impl fmt::Display for Tensor {
 mod tests {
     use super::*;
     use crate::dtype;
+    use crate::array::{Shape, Strides};
 
     #[test]
     fn shape_creation() {
