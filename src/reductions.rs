@@ -454,14 +454,15 @@ fn prod_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{dtype, Tensor};
+    use crate::array::Array;
+    use crate::dtype;
 
     #[test]
     fn test_sum_all() {
         let data = [1.0f32, 2.0, 3.0, 4.0];
-        let tensor = Tensor::from_slice(&data, Shape::from([2, 2]));
+        let array = Array::from_slice(&data, Shape::from([2, 2])).unwrap();
 
-        let result = sum(&tensor, None).unwrap();
+        let result = sum(&array, None).unwrap();
         assert_eq!(result.shape(), &Shape::from([1]));
         assert_eq!(result.dtype(), dtype::F32);
     }
@@ -469,9 +470,9 @@ mod tests {
     #[test]
     fn test_sum_axis() {
         let data = [1.0f32, 2.0, 3.0, 4.0];
-        let tensor = Tensor::from_slice(&data, Shape::from([2, 2]));
+        let array = Array::from_slice(&data, Shape::from([2, 2])).unwrap();
 
-        let result = sum(&tensor, Some(0)).unwrap();
+        let result = sum(&array, Some(0)).unwrap();
         assert_eq!(result.shape(), &Shape::from([2])); // Sum along axis 0
         assert_eq!(result.dtype(), dtype::F32);
     }
@@ -489,9 +490,9 @@ mod tests {
     #[test]
     fn test_mean() {
         let data = [1.0f32, 2.0, 3.0, 4.0];
-        let tensor = Tensor::from_slice(&data, Shape::from([2, 2]));
+        let array = Array::from_slice(&data, Shape::from([2, 2])).unwrap();
 
-        let result = mean(&tensor, None).unwrap();
+        let result = mean(&array, None).unwrap();
         assert_eq!(result.shape(), &Shape::from([1]));
         assert_eq!(result.dtype(), dtype::F32);
         // Mean of [1,2,3,4] = 2.5
@@ -500,9 +501,9 @@ mod tests {
     #[test]
     fn test_max_all() {
         let data = [1.0f32, 5.0, 3.0, 2.0];
-        let tensor = Tensor::from_slice(&data, Shape::from([2, 2]));
+        let array = Array::from_slice(&data, Shape::from([2, 2])).unwrap();
 
-        let result = max(&tensor, None).unwrap();
+        let result = max(&array, None).unwrap();
         assert_eq!(result.shape(), &Shape::from([1]));
         assert_eq!(result.dtype(), dtype::F32);
     }
@@ -510,9 +511,9 @@ mod tests {
     #[test]
     fn test_min_axis() {
         let data = [3.0f32, 1.0, 4.0, 2.0];
-        let tensor = Tensor::from_slice(&data, Shape::from([2, 2]));
+        let array = Array::from_slice(&data, Shape::from([2, 2])).unwrap();
 
-        let result = min(&tensor, Some(1)).unwrap();
+        let result = min(&array, Some(1)).unwrap();
         assert_eq!(result.shape(), &Shape::from([2])); // Min along axis 1
         assert_eq!(result.dtype(), dtype::F32);
     }

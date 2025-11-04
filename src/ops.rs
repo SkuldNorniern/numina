@@ -571,19 +571,7 @@ where
 mod tests {
     use super::*;
     use crate::array::Array;
-    use crate::{Shape, Tensor};
-
-    #[test]
-    fn test_add_tensor() {
-        let a = Tensor::from_slice(&[1.0f32, 2.0, 3.0], Shape::from([3]));
-        let b = Tensor::from_slice(&[4.0f32, 5.0, 6.0], Shape::from([3]));
-
-        let result = add(&a, &b).unwrap();
-        let tensor_result = Tensor::from_ndarray(result);
-
-        assert_eq!(tensor_result.shape(), &Shape::from([3]));
-        assert_eq!(tensor_result.dtype(), crate::dtype::F32);
-    }
+    use crate::Shape;
 
     #[test]
     fn test_add_array() {
@@ -591,48 +579,45 @@ mod tests {
         let b = Array::from_slice(&[4.0f32, 5.0, 6.0], Shape::from([3])).unwrap();
 
         let result = add(&a, &b).unwrap();
+
         assert_eq!(result.shape(), &Shape::from([3]));
         assert_eq!(result.dtype(), crate::dtype::F32);
     }
 
     #[test]
     fn test_matmul() {
-        let a = Tensor::from_slice(&[1.0f32, 2.0, 3.0, 4.0], Shape::from([2, 2]));
-        let b = Tensor::from_slice(&[5.0f32, 6.0, 7.0, 8.0], Shape::from([2, 2]));
+        let a = Array::from_slice(&[1.0f32, 2.0, 3.0, 4.0], Shape::from([2, 2])).unwrap();
+        let b = Array::from_slice(&[5.0f32, 6.0, 7.0, 8.0], Shape::from([2, 2])).unwrap();
 
         let result = matmul(&a, &b).unwrap();
-        let tensor_result = Tensor::from_ndarray(result);
-        assert_eq!(tensor_result.shape(), &Shape::from([2, 2]));
-        assert_eq!(tensor_result.dtype(), crate::dtype::F32);
+        assert_eq!(result.shape(), &Shape::from([2, 2]));
+        assert_eq!(result.dtype(), crate::dtype::F32);
     }
 
     #[test]
     fn test_exp() {
-        let a = Tensor::from_slice(&[0.0f32], Shape::from([1]));
+        let a = Array::from_slice(&[0.0f32], Shape::from([1])).unwrap();
         let result = exp(&a).unwrap();
-        let tensor_result = Tensor::from_ndarray(result);
 
-        assert_eq!(tensor_result.shape(), &Shape::from([1]));
-        assert_eq!(tensor_result.dtype(), crate::dtype::F32);
+        assert_eq!(result.shape(), &Shape::from([1]));
+        assert_eq!(result.dtype(), crate::dtype::F32);
     }
 
     #[test]
     fn test_sqrt() {
-        let a = Tensor::from_slice(&[4.0f32, 9.0, 16.0], Shape::from([3]));
+        let a = Array::from_slice(&[4.0f32, 9.0, 16.0], Shape::from([3])).unwrap();
         let result = sqrt(&a).unwrap();
-        let tensor_result = Tensor::from_ndarray(result);
 
-        assert_eq!(tensor_result.shape(), &Shape::from([3]));
-        assert_eq!(tensor_result.dtype(), crate::dtype::F32);
+        assert_eq!(result.shape(), &Shape::from([3]));
+        assert_eq!(result.dtype(), crate::dtype::F32);
     }
 
     #[test]
     fn test_abs() {
-        let a = Tensor::from_slice(&[-1.0f32, 2.0, -3.0], Shape::from([3]));
+        let a = Array::from_slice(&[-1.0f32, 2.0, -3.0], Shape::from([3])).unwrap();
         let result = abs(&a).unwrap();
-        let tensor_result = Tensor::from_ndarray(result);
 
-        assert_eq!(tensor_result.shape(), &Shape::from([3]));
-        assert_eq!(tensor_result.dtype(), crate::dtype::F32);
+        assert_eq!(result.shape(), &Shape::from([3]));
+        assert_eq!(result.dtype(), crate::dtype::F32);
     }
 }

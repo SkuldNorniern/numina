@@ -1,10 +1,10 @@
 //! Sorting and searching operations
 
-use crate::array::{NdArray, data_as_slice, ensure_host_accessible};
-use crate::{Tensor, Shape, DType};
+use crate::array::{NdArray, CpuBytesArray, data_as_slice, ensure_host_accessible};
+use crate::{Shape, DType};
 
-/// Sort tensor along specified axis
-pub fn sort<A: NdArray>(array: &A, axis: Option<usize>, descending: bool) -> Result<Tensor, String> {
+/// Sort array along specified axis
+pub fn sort<A: NdArray>(array: &A, axis: Option<usize>, descending: bool) -> Result<CpuBytesArray, String> {
     ensure_host_accessible(array, "sort")?;
 
     match axis {
@@ -14,16 +14,16 @@ pub fn sort<A: NdArray>(array: &A, axis: Option<usize>, descending: bool) -> Res
 }
 
 /// Sort along a specific axis
-fn sort_axis<A: NdArray>(array: &A, axis: usize, descending: bool) -> Result<Tensor, String> {
+fn sort_axis<A: NdArray>(array: &A, axis: usize, descending: bool) -> Result<CpuBytesArray, String> {
     if axis >= array.shape().ndim() {
         return Err(format!(
-            "Axis {} out of bounds for {}D tensor",
+            "Axis {} out of bounds for {}D array",
             axis,
             array.shape().ndim()
         ));
     }
 
-    let mut result = Tensor::zeros(array.dtype(), array.shape().clone());
+    let mut result = CpuBytesArray::zeros(array.dtype(), array.shape().clone());
 
     match array.dtype() {
         DType::F32 => {
@@ -120,9 +120,9 @@ fn sort_axis<A: NdArray>(array: &A, axis: usize, descending: bool) -> Result<Ten
     Ok(result)
 }
 
-/// Sort flattened tensor
-fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Tensor, String> {
-    let mut result = Tensor::zeros(array.dtype(), array.shape().clone());
+/// Sort flattened array
+fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<CpuBytesArray, String> {
+    let mut result = CpuBytesArray::zeros(array.dtype(), array.shape().clone());
 
     match array.dtype() {
         DType::F32 => {
@@ -155,8 +155,8 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Tensor, Strin
     Ok(result)
 }
 
-/// Get indices that would sort the tensor
-pub fn argsort<A: NdArray>(array: &A, _axis: Option<usize>, descending: bool) -> Result<Tensor, String> {
+/// Get indices that would sort the array
+pub fn argsort<A: NdArray>(array: &A, _axis: Option<usize>, descending: bool) -> Result<CpuBytesArray, String> {
     ensure_host_accessible(array, "argsort")?;
 
     if array.shape().ndim() != 1 {
@@ -195,7 +195,7 @@ pub fn argsort<A: NdArray>(array: &A, _axis: Option<usize>, descending: bool) ->
         _ => return Err(format!("Argsort not implemented for {}", array.dtype())),
     }
 
-    Ok(Tensor::new(
+    Ok(CpuBytesArray::new(
         unsafe {
             std::slice::from_raw_parts(
                 indices.as_ptr() as *const u8,
@@ -236,12 +236,13 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::array::Array;
 
     #[test]
     fn test_sort_1d() {
         let data = [3.0f32, 1.0, 4.0, 1.5, 9.0];
-        let tensor = Tensor::from_slice(&data, Shape::from([5]));
-        let result = sort(&tensor, None, false).unwrap();
+        let array = Array::from_slice(&data, Shape::from([5])).unwrap();
+        let result = sort(&array, None, false).unwrap();
 
         assert_eq!(result.shape(), &Shape::from([5]));
         assert_eq!(result.dtype(), DType::F32);
@@ -250,8 +251,8 @@ mod tests {
     #[test]
     fn test_sort_1d_descending() {
         let data = [3.0f32, 1.0, 4.0];
-        let tensor = Tensor::from_slice(&data, Shape::from([3]));
-        let result = sort(&tensor, None, true).unwrap();
+        let array = Array::from_slice(&data, Shape::from([3])).unwrap();
+        let result = sort(&array, None, true).unwrap();
 
         assert_eq!(result.shape(), &Shape::from([3]));
         assert_eq!(result.dtype(), DType::F32);
@@ -260,8 +261,8 @@ mod tests {
     #[test]
     fn test_argsort() {
         let data = [3.0f32, 1.0, 4.0, 1.5];
-        let tensor = Tensor::from_slice(&data, Shape::from([4]));
-        let result = argsort(&tensor, None, false).unwrap();
+        let array = Array::from_slice(&data, Shape::from([4])).unwrap();
+        let result = argsort(&array, None, false).unwrap();
 
         assert_eq!(result.shape(), &Shape::from([4]));
         assert_eq!(result.dtype(), DType::I32);
@@ -270,8 +271,8 @@ mod tests {
     #[test]
     fn test_where_condition() {
         let data = [1.0f32, 5.0, 2.0, 8.0, 3.0];
-        let tensor = Tensor::from_slice(&data, Shape::from([5]));
-        let indices = where_condition(&tensor, |x| x > 3.0).unwrap();
+        let array = Array::from_slice(&data, Shape::from([5])).unwrap();
+        let indices = where_condition(&array, |x| x > 3.0).unwrap();
 
         assert_eq!(indices, vec![1, 3]); // indices of 5.0 and 8.0
     }

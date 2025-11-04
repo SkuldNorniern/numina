@@ -5,7 +5,7 @@ pub mod stride;
 use std::mem;
 
 use crate::dtype::DTypeLike;
-use crate::{DType, Tensor};
+use crate::DType;
 
 // Re-export the shape and stride modules
 pub use {shape::Shape, stride::Strides};
@@ -288,6 +288,18 @@ impl CpuBytesArray {
         &mut self.data
     }
 
+    /// Get mutable typed slice for internal operations
+    /// # Safety
+    /// T must match the actual dtype stored
+    pub(crate) unsafe fn data_as_slice_mut<T>(&mut self) -> &mut [T] {
+        unsafe {
+            std::slice::from_raw_parts_mut(
+                self.data.as_mut_ptr() as *mut T,
+                self.len,
+            )
+        }
+    }
+
     pub fn into_boxed(self) -> Box<dyn NdArray> {
         Box::new(self)
     }
@@ -447,43 +459,6 @@ where
         &self.strides
     }
 
-    /// Consume the array and convert it into a tensor
-    pub fn into_tensor(self) -> Tensor
-    where
-        T: Copy,
-    {
-        let byte_len = self.data.len() * mem::size_of::<T>();
-        let mut bytes = Vec::<u8>::with_capacity(byte_len);
-        unsafe {
-            bytes.set_len(byte_len);
-            std::ptr::copy_nonoverlapping(
-                self.data.as_ptr() as *const u8,
-                bytes.as_mut_ptr(),
-                byte_len,
-            );
-        }
-
-        Tensor::new(bytes, self.shape, T::DTYPE)
-    }
-
-    /// Borrowed conversion into a tensor (clones the data)
-    pub fn to_tensor(&self) -> Tensor
-    where
-        T: Copy,
-    {
-        let byte_len = self.data.len() * mem::size_of::<T>();
-        let mut bytes = Vec::<u8>::with_capacity(byte_len);
-        unsafe {
-            bytes.set_len(byte_len);
-            std::ptr::copy_nonoverlapping(
-                self.data.as_ptr() as *const u8,
-                bytes.as_mut_ptr(),
-                byte_len,
-            );
-        }
-
-        Tensor::new(bytes, self.shape.clone(), T::DTYPE)
-    }
 
     /// Internal constructor used for zero-copy conversions from tensors
     pub(crate) fn from_raw_parts(data: Vec<T>, shape: Shape, strides: Strides) -> Self {
@@ -534,14 +509,6 @@ where
     }
 }
 
-impl<T> From<Array<T>> for Tensor
-where
-    T: DTypeLike + Copy + std::fmt::Debug + 'static,
-{
-    fn from(array: Array<T>) -> Self {
-        array.into_tensor()
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -558,14 +525,16 @@ mod tests {
     }
 
     #[test]
-    fn array_to_tensor() {
+    fn array_to_cpu_bytes() {
         let shape = Shape::from([2, 2]);
         let array = Array::from_slice(&[1.0f32, 2.0, 3.0, 4.0], shape.clone()).unwrap();
-        let tensor = array.to_tensor();
 
-        assert_eq!(tensor.shape(), &shape);
-        assert_eq!(tensor.dtype(), DType::F32);
-        assert_eq!(tensor.len(), 4);
+        // Convert to CpuBytesArray via NdArray trait
+        let cpu_bytes: Box<dyn NdArray> = Box::new(array.clone());
+
+        assert_eq!(cpu_bytes.shape(), &shape);
+        assert_eq!(cpu_bytes.dtype(), DType::F32);
+        assert_eq!(cpu_bytes.len(), 4);
     }
 }
 
