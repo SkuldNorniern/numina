@@ -1,6 +1,6 @@
 //! Primitive type conversions for DType
 
-use super::DType;
+use super::{types::{BFloat16, QuantizedI4, QuantizedU8}, DType};
 
 // Conversion traits
 impl From<f32> for DType {
@@ -69,6 +69,24 @@ impl From<bool> for DType {
     }
 }
 
+impl From<BFloat16> for DType {
+    fn from(_: BFloat16) -> Self {
+        DType::BF16
+    }
+}
+
+impl From<QuantizedI4> for DType {
+    fn from(_: QuantizedI4) -> Self {
+        DType::QI4
+    }
+}
+
+impl From<QuantizedU8> for DType {
+    fn from(_: QuantizedU8) -> Self {
+        DType::QU8
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -80,5 +98,17 @@ mod tests {
         assert_eq!(DType::from(1i32), DType::I32);
         assert_eq!(DType::from(1u64), DType::U64);
         assert_eq!(DType::from(true), DType::Bool);
+    }
+
+    #[test]
+    fn dtype_from_custom_types() {
+        let bf16 = BFloat16::from_f32(1.0);
+        assert_eq!(DType::from(bf16), DType::BF16);
+
+        let qi4 = QuantizedI4::from_i8(5, 1.0);
+        assert_eq!(DType::from(qi4), DType::QI4);
+
+        let qu8 = QuantizedU8::quantize(2.5, 0.01);
+        assert_eq!(DType::from(qu8), DType::QU8);
     }
 }

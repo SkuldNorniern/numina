@@ -7,7 +7,7 @@ pub mod conversions;
 pub mod types;
 
 // Re-exports for convenience
-pub use types::{BFloat16, QuantizedU8};
+pub use types::{BFloat16, QuantizedI4, QuantizedU8};
 
 /// Trait for mapping concrete Rust types to Numina dtypes
 pub trait DTypeLike: Copy {
@@ -81,6 +81,12 @@ pub enum DType {
     U64,
     /// Boolean
     Bool,
+    /// Brain Float 16-bit
+    BF16,
+    /// Quantized 4-bit signed integer
+    QI4,
+    /// Quantized 8-bit unsigned integer
+    QU8,
 }
 
 impl DTypeCandidate for DType {
@@ -135,12 +141,15 @@ impl DType {
             DType::U32 => 4,
             DType::U64 => 8,
             DType::Bool => 1,
+            DType::BF16 => 2,
+            DType::QI4 => 1, // 4 bits per value, but allocated per byte
+            DType::QU8 => 1,
         }
     }
 
     /// Returns true if this is a floating point type
     pub fn is_float(&self) -> bool {
-        matches!(self, DType::F16 | DType::F32 | DType::F64)
+        matches!(self, DType::F16 | DType::F32 | DType::F64 | DType::BF16)
     }
 
     /// Returns true if this is an integer type
@@ -155,17 +164,19 @@ impl DType {
                 | DType::U16
                 | DType::U32
                 | DType::U64
+                | DType::QI4
+                | DType::QU8
         )
     }
 
     /// Returns true if this is a signed integer type
     pub fn is_signed_int(&self) -> bool {
-        matches!(self, DType::I8 | DType::I16 | DType::I32 | DType::I64)
+        matches!(self, DType::I8 | DType::I16 | DType::I32 | DType::I64 | DType::QI4)
     }
 
     /// Returns true if this is an unsigned integer type
     pub fn is_unsigned_int(&self) -> bool {
-        matches!(self, DType::U8 | DType::U16 | DType::U32 | DType::U64)
+        matches!(self, DType::U8 | DType::U16 | DType::U32 | DType::U64 | DType::QU8)
     }
 
     /// Returns true if this is a signed type (for integers)
@@ -193,6 +204,9 @@ impl DType {
             DType::U32 => "u32",
             DType::U64 => "u64",
             DType::Bool => "bool",
+            DType::BF16 => "bf16",
+            DType::QI4 => "qi4",
+            DType::QU8 => "qu8",
         }
     }
 }
@@ -248,6 +262,18 @@ impl DTypeLike for bool {
     const DTYPE: DType = DType::Bool;
 }
 
+impl DTypeLike for BFloat16 {
+    const DTYPE: DType = DType::BF16;
+}
+
+impl DTypeLike for QuantizedI4 {
+    const DTYPE: DType = DType::QI4;
+}
+
+impl DTypeLike for QuantizedU8 {
+    const DTYPE: DType = DType::QU8;
+}
+
 // Convenience constants
 pub const F32: DType = DType::F32;
 pub const F64: DType = DType::F64;
@@ -261,6 +287,9 @@ pub const U16: DType = DType::U16;
 pub const U32: DType = DType::U32;
 pub const U64: DType = DType::U64;
 pub const BOOL: DType = DType::Bool;
+pub const BF16: DType = DType::BF16;
+pub const QI4: DType = DType::QI4;
+pub const QU8: DType = DType::QU8;
 
 // Constants are already defined above, no need to re-export
 
