@@ -1,8 +1,12 @@
 //! Sorting and searching operations
 
+<<<<<<< HEAD
 use crate::array::{
     CpuBytesArray, NdArray, data_as_slice, data_as_slice_mut, ensure_host_accessible,
 };
+=======
+use crate::array::{CpuBytesArray, NdArray, data_as_slice, ensure_host_accessible};
+>>>>>>> b996c862c8d52a59d50b3035ebc36183885da337
 use crate::{DType, Shape};
 
 /// Sort array along specified axis
