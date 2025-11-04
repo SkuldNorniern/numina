@@ -253,6 +253,13 @@ pub fn mean<A: NdArray>(array: &A, axis: Option<usize>) -> Result<Box<dyn NdArra
     let mut result = array.zeros(result_shape)?;
 
     match array.dtype() {
+        DType::F16 => {
+            let sum_data = unsafe { data_as_slice::<f32>(&*sum_result) };
+            let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
+            for i in 0..sum_data.len() {
+                result_data[i] = sum_data[i] / count as f32;
+            }
+        }
         DType::F32 => {
             let sum_data = unsafe { data_as_slice::<f32>(&*sum_result) };
             let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
@@ -275,7 +282,68 @@ pub fn mean<A: NdArray>(array: &A, axis: Option<usize>) -> Result<Box<dyn NdArra
                 result_data[i] = crate::BFloat16::from_f32(result_f32);
             }
         }
-        _ => return Err(format!("Mean not implemented for {}", array.dtype())),
+        DType::I8 => {
+            let sum_data = unsafe { data_as_slice::<i8>(&*sum_result) };
+            let result_data = unsafe { data_as_slice_mut::<i8>(&mut *result) };
+            for i in 0..sum_data.len() {
+                result_data[i] = (sum_data[i] as f32 / count as f32) as i8;
+            }
+        }
+        DType::I16 => {
+            let sum_data = unsafe { data_as_slice::<i16>(&*sum_result) };
+            let result_data = unsafe { data_as_slice_mut::<i16>(&mut *result) };
+            for i in 0..sum_data.len() {
+                result_data[i] = (sum_data[i] as f32 / count as f32) as i16;
+            }
+        }
+        DType::I32 => {
+            let sum_data = unsafe { data_as_slice::<i32>(&*sum_result) };
+            let result_data = unsafe { data_as_slice_mut::<i32>(&mut *result) };
+            for i in 0..sum_data.len() {
+                result_data[i] = (sum_data[i] as f64 / count) as i32;
+            }
+        }
+        DType::I64 => {
+            let sum_data = unsafe { data_as_slice::<i64>(&*sum_result) };
+            let result_data = unsafe { data_as_slice_mut::<i64>(&mut *result) };
+            for i in 0..sum_data.len() {
+                result_data[i] = (sum_data[i] as f64 / count) as i64;
+            }
+        }
+        DType::U8 => {
+            let sum_data = unsafe { data_as_slice::<u8>(&*sum_result) };
+            let result_data = unsafe { data_as_slice_mut::<u8>(&mut *result) };
+            for i in 0..sum_data.len() {
+                result_data[i] = (sum_data[i] as f32 / count as f32) as u8;
+            }
+        }
+        DType::U16 => {
+            let sum_data = unsafe { data_as_slice::<u16>(&*sum_result) };
+            let result_data = unsafe { data_as_slice_mut::<u16>(&mut *result) };
+            for i in 0..sum_data.len() {
+                result_data[i] = (sum_data[i] as f32 / count as f32) as u16;
+            }
+        }
+        DType::U32 => {
+            let sum_data = unsafe { data_as_slice::<u32>(&*sum_result) };
+            let result_data = unsafe { data_as_slice_mut::<u32>(&mut *result) };
+            for i in 0..sum_data.len() {
+                result_data[i] = (sum_data[i] as f64 / count) as u32;
+            }
+        }
+        DType::U64 => {
+            let sum_data = unsafe { data_as_slice::<u64>(&*sum_result) };
+            let result_data = unsafe { data_as_slice_mut::<u64>(&mut *result) };
+            for i in 0..sum_data.len() {
+                result_data[i] = (sum_data[i] as f64 / count) as u64;
+            }
+        }
+        DType::Bool => {
+            return Err(format!("Mean not supported for boolean type"));
+        }
+        DType::QI4 | DType::QU8 => {
+            return Err(format!("Mean not implemented for quantized types {}", array.dtype()));
+        }
     }
 
     Ok(result)
