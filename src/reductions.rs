@@ -1,7 +1,7 @@
 //! Reduction operations (sum, mean, max, min, etc.)
 
 use crate::array::{
-    data_as_slice, data_as_slice_mut, ensure_host_accessible, CpuBytesArray, NdArray,
+    data_as_slice, data_as_slice_mut, ensure_host_accessible, NdArray,
 };
 use crate::{DType, Shape};
 
@@ -34,13 +34,13 @@ fn sum_axis<A: NdArray>(array: &A, axis: usize) -> Result<Box<dyn NdArray>, Stri
         Shape::from(output_dims)
     };
 
-    let mut result = CpuBytesArray::zeros(array.dtype(), output_shape);
+    let mut result = array.zeros(output_shape)?;
 
     // Simple implementation - in practice would be much more optimized
     match array.dtype() {
         DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
-            let result_data = unsafe { data_as_slice_mut::<f32>(&mut result) };
+            let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
 
             // This is a simplified implementation for 2D tensors
             if array.shape().ndim() == 2 {
@@ -71,7 +71,7 @@ fn sum_axis<A: NdArray>(array: &A, axis: usize) -> Result<Box<dyn NdArray>, Stri
         }
         DType::F64 => {
             let tensor_data = unsafe { data_as_slice::<f64>(array) };
-            let result_data = unsafe { data_as_slice_mut::<f64>(&mut result) };
+            let result_data = unsafe { data_as_slice_mut::<f64>(&mut *result) };
 
             // Simplified 2D implementation
             if array.shape().ndim() == 2 {
@@ -101,17 +101,27 @@ fn sum_axis<A: NdArray>(array: &A, axis: usize) -> Result<Box<dyn NdArray>, Stri
         _ => return Err(format!("Sum not implemented for {}", array.dtype())),
     }
 
-    Ok(result.into_boxed())
+    Ok(result)
 }
 
 /// Sum all elements
 fn sum_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
-    let mut result = CpuBytesArray::zeros(array.dtype(), Shape::from([1]));
+    let mut result = array.zeros(Shape::from([1]))?;
 
     match array.dtype() {
+        DType::F16 => {
+            let tensor_data = unsafe { data_as_slice::<f32>(array) };
+            let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
+
+            let mut sum = 0.0f32;
+            for &val in tensor_data {
+                sum += val;
+            }
+            result_data[0] = sum;
+        }
         DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
-            let result_data = unsafe { data_as_slice_mut::<f32>(&mut result) };
+            let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
 
             let mut sum = 0.0f32;
             for &val in tensor_data {
@@ -121,7 +131,7 @@ fn sum_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
         }
         DType::F64 => {
             let tensor_data = unsafe { data_as_slice::<f64>(array) };
-            let result_data = unsafe { data_as_slice_mut::<f64>(&mut result) };
+            let result_data = unsafe { data_as_slice_mut::<f64>(&mut *result) };
 
             let mut sum = 0.0f64;
             for &val in tensor_data {
@@ -129,10 +139,105 @@ fn sum_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
             }
             result_data[0] = sum;
         }
-        _ => return Err(format!("Sum not implemented for {}", array.dtype())),
+        DType::BF16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+
+            let mut sum = 0.0f32;
+            for &val in tensor_data {
+                sum += val.to_f32();
+            }
+            result_data[0] = crate::BFloat16::from_f32(sum);
+        }
+        DType::I8 => {
+            let tensor_data = unsafe { data_as_slice::<i8>(array) };
+            let result_data = unsafe { data_as_slice_mut::<i8>(&mut *result) };
+
+            let mut sum = 0i8;
+            for &val in tensor_data {
+                sum = sum.wrapping_add(val);
+            }
+            result_data[0] = sum;
+        }
+        DType::I16 => {
+            let tensor_data = unsafe { data_as_slice::<i16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<i16>(&mut *result) };
+
+            let mut sum = 0i16;
+            for &val in tensor_data {
+                sum = sum.wrapping_add(val);
+            }
+            result_data[0] = sum;
+        }
+        DType::I32 => {
+            let tensor_data = unsafe { data_as_slice::<i32>(array) };
+            let result_data = unsafe { data_as_slice_mut::<i32>(&mut *result) };
+
+            let mut sum = 0i32;
+            for &val in tensor_data {
+                sum = sum.wrapping_add(val);
+            }
+            result_data[0] = sum;
+        }
+        DType::I64 => {
+            let tensor_data = unsafe { data_as_slice::<i64>(array) };
+            let result_data = unsafe { data_as_slice_mut::<i64>(&mut *result) };
+
+            let mut sum = 0i64;
+            for &val in tensor_data {
+                sum = sum.wrapping_add(val);
+            }
+            result_data[0] = sum;
+        }
+        DType::U8 => {
+            let tensor_data = unsafe { data_as_slice::<u8>(array) };
+            let result_data = unsafe { data_as_slice_mut::<u8>(&mut *result) };
+
+            let mut sum = 0u8;
+            for &val in tensor_data {
+                sum = sum.wrapping_add(val);
+            }
+            result_data[0] = sum;
+        }
+        DType::U16 => {
+            let tensor_data = unsafe { data_as_slice::<u16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<u16>(&mut *result) };
+
+            let mut sum = 0u16;
+            for &val in tensor_data {
+                sum = sum.wrapping_add(val);
+            }
+            result_data[0] = sum;
+        }
+        DType::U32 => {
+            let tensor_data = unsafe { data_as_slice::<u32>(array) };
+            let result_data = unsafe { data_as_slice_mut::<u32>(&mut *result) };
+
+            let mut sum = 0u32;
+            for &val in tensor_data {
+                sum = sum.wrapping_add(val);
+            }
+            result_data[0] = sum;
+        }
+        DType::U64 => {
+            let tensor_data = unsafe { data_as_slice::<u64>(array) };
+            let result_data = unsafe { data_as_slice_mut::<u64>(&mut *result) };
+
+            let mut sum = 0u64;
+            for &val in tensor_data {
+                sum = sum.wrapping_add(val);
+            }
+            result_data[0] = sum;
+        }
+        DType::Bool => {
+            return Err(format!("Sum not supported for boolean type"));
+        }
+        DType::QI4 | DType::QU8 => {
+            return Err(format!("Sum not implemented for quantized types {}", array.dtype()));
+        }
     }
 
-    Ok(result.into_boxed())
+    Ok(result)
 }
 
 /// Mean reduction
@@ -145,27 +250,35 @@ pub fn mean<A: NdArray>(array: &A, axis: Option<usize>) -> Result<Box<dyn NdArra
 
     // Create new result and divide sum by count
     let result_shape = sum_result.shape().clone();
-    let mut result = CpuBytesArray::zeros(array.dtype(), result_shape);
+    let mut result = array.zeros(result_shape)?;
 
     match array.dtype() {
         DType::F32 => {
             let sum_data = unsafe { data_as_slice::<f32>(&*sum_result) };
-            let result_data = unsafe { data_as_slice_mut::<f32>(&mut result) };
+            let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
             for i in 0..sum_data.len() {
                 result_data[i] = sum_data[i] / count as f32;
             }
         }
         DType::F64 => {
             let sum_data = unsafe { data_as_slice::<f64>(&*sum_result) };
-            let result_data = unsafe { data_as_slice_mut::<f64>(&mut result) };
+            let result_data = unsafe { data_as_slice_mut::<f64>(&mut *result) };
             for i in 0..sum_data.len() {
                 result_data[i] = sum_data[i] / count;
+            }
+        }
+        DType::BF16 => {
+            let sum_data = unsafe { data_as_slice::<crate::BFloat16>(&*sum_result) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+            for i in 0..sum_data.len() {
+                let result_f32 = sum_data[i].to_f32() / count as f32;
+                result_data[i] = crate::BFloat16::from_f32(result_f32);
             }
         }
         _ => return Err(format!("Mean not implemented for {}", array.dtype())),
     }
 
-    Ok(result.into_boxed())
+    Ok(result)
 }
 
 /// Maximum value
@@ -197,12 +310,12 @@ fn max_axis<A: NdArray>(array: &A, axis: usize) -> Result<Box<dyn NdArray>, Stri
         Shape::from(output_dims)
     };
 
-    let mut result = CpuBytesArray::zeros(array.dtype(), output_shape);
+    let mut result = array.zeros(output_shape)?;
 
     match array.dtype() {
         DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
-            let result_data = unsafe { data_as_slice_mut::<f32>(&mut result) };
+            let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
 
             if array.shape().ndim() == 2 {
                 let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
@@ -231,17 +344,17 @@ fn max_axis<A: NdArray>(array: &A, axis: usize) -> Result<Box<dyn NdArray>, Stri
         _ => return Err(format!("Max not implemented for {}", array.dtype())),
     }
 
-    Ok(result.into_boxed())
+    Ok(result)
 }
 
 /// Max of all elements
 fn max_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
-    let mut result = CpuBytesArray::zeros(array.dtype(), Shape::from([1]));
+    let mut result = array.zeros(Shape::from([1]))?;
 
     match array.dtype() {
         DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
-            let result_data = unsafe { data_as_slice_mut::<f32>(&mut result) };
+            let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
 
             let mut max_val = f32::NEG_INFINITY;
             for &val in tensor_data {
@@ -251,7 +364,7 @@ fn max_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
         }
         DType::F64 => {
             let tensor_data = unsafe { data_as_slice::<f64>(array) };
-            let result_data = unsafe { data_as_slice_mut::<f64>(&mut result) };
+            let result_data = unsafe { data_as_slice_mut::<f64>(&mut *result) };
 
             let mut max_val = f64::NEG_INFINITY;
             for &val in tensor_data {
@@ -262,7 +375,7 @@ fn max_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
         _ => return Err(format!("Max not implemented for {}", array.dtype())),
     }
 
-    Ok(result.into_boxed())
+    Ok(result)
 }
 
 /// Minimum value
@@ -293,12 +406,12 @@ fn min_axis<A: NdArray>(array: &A, axis: usize) -> Result<Box<dyn NdArray>, Stri
         Shape::from(output_dims)
     };
 
-    let mut result = CpuBytesArray::zeros(array.dtype(), output_shape);
+    let mut result = array.zeros(output_shape)?;
 
     match array.dtype() {
         DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
-            let result_data = unsafe { data_as_slice_mut::<f32>(&mut result) };
+            let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
 
             if array.shape().ndim() == 2 {
                 let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
@@ -325,17 +438,17 @@ fn min_axis<A: NdArray>(array: &A, axis: usize) -> Result<Box<dyn NdArray>, Stri
         _ => return Err(format!("Min not implemented for {}", array.dtype())),
     }
 
-    Ok(result.into_boxed())
+    Ok(result)
 }
 
 /// Min of all elements
 fn min_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
-    let mut result = CpuBytesArray::zeros(array.dtype(), Shape::from([1]));
+    let mut result = array.zeros(Shape::from([1]))?;
 
     match array.dtype() {
         DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
-            let result_data = unsafe { data_as_slice_mut::<f32>(&mut result) };
+            let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
 
             let mut min_val = f32::INFINITY;
             for &val in tensor_data {
@@ -345,7 +458,7 @@ fn min_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
         }
         DType::F64 => {
             let tensor_data = unsafe { data_as_slice::<f64>(array) };
-            let result_data = unsafe { data_as_slice_mut::<f64>(&mut result) };
+            let result_data = unsafe { data_as_slice_mut::<f64>(&mut *result) };
 
             let mut min_val = f64::INFINITY;
             for &val in tensor_data {
@@ -356,7 +469,7 @@ fn min_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
         _ => return Err(format!("Min not implemented for {}", array.dtype())),
     }
 
-    Ok(result.into_boxed())
+    Ok(result)
 }
 
 /// Product of all elements
@@ -387,12 +500,12 @@ fn prod_axis<A: NdArray>(array: &A, axis: usize) -> Result<Box<dyn NdArray>, Str
         Shape::from(output_dims)
     };
 
-    let mut result = CpuBytesArray::ones(array.dtype(), output_shape);
+    let mut result = array.ones(output_shape)?;
 
     match array.dtype() {
         DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
-            let result_data = unsafe { data_as_slice_mut::<f32>(&mut result) };
+            let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
 
             if array.shape().ndim() == 2 {
                 let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
@@ -419,17 +532,17 @@ fn prod_axis<A: NdArray>(array: &A, axis: usize) -> Result<Box<dyn NdArray>, Str
         _ => return Err(format!("Prod not implemented for {}", array.dtype())),
     }
 
-    Ok(result.into_boxed())
+    Ok(result)
 }
 
 /// Product of all elements
 fn prod_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
-    let mut result = CpuBytesArray::ones(array.dtype(), Shape::from([1]));
+    let mut result = array.ones(Shape::from([1]))?;
 
     match array.dtype() {
         DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
-            let result_data = unsafe { data_as_slice_mut::<f32>(&mut result) };
+            let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
 
             let mut prod = 1.0f32;
             for &val in tensor_data {
@@ -439,7 +552,7 @@ fn prod_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
         }
         DType::F64 => {
             let tensor_data = unsafe { data_as_slice::<f64>(array) };
-            let result_data = unsafe { data_as_slice_mut::<f64>(&mut result) };
+            let result_data = unsafe { data_as_slice_mut::<f64>(&mut *result) };
 
             let mut prod = 1.0f64;
             for &val in tensor_data {
@@ -450,7 +563,7 @@ fn prod_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
         _ => return Err(format!("Prod not implemented for {}", array.dtype())),
     }
 
-    Ok(result.into_boxed())
+    Ok(result)
 }
 
 #[cfg(test)]
@@ -467,6 +580,10 @@ mod tests {
         let result = sum(&array, None).unwrap();
         assert_eq!(result.shape(), &Shape::from([1]));
         assert_eq!(result.dtype(), dtype::F32);
+
+        // Verify sum result: 1+2+3+4 = 10
+        let result_data = unsafe { data_as_slice::<f32>(&*result) };
+        assert_eq!(result_data[0], 10.0);
     }
 
     #[test]
@@ -477,6 +594,11 @@ mod tests {
         let result = sum(&array, Some(0)).unwrap();
         assert_eq!(result.shape(), &Shape::from([2])); // Sum along axis 0
         assert_eq!(result.dtype(), dtype::F32);
+
+        // Verify sum along axis 0: [[1,2],[3,4]] -> [1+3, 2+4] = [4, 6]
+        let result_data = unsafe { data_as_slice::<f32>(&*result) };
+        assert_eq!(result_data[0], 4.0);
+        assert_eq!(result_data[1], 6.0);
     }
 
     #[test]
@@ -497,7 +619,10 @@ mod tests {
         let result = mean(&array, None).unwrap();
         assert_eq!(result.shape(), &Shape::from([1]));
         assert_eq!(result.dtype(), dtype::F32);
-        // Mean of [1,2,3,4] = 2.5
+
+        // Verify mean result: (1+2+3+4)/4 = 2.5
+        let result_data = unsafe { data_as_slice::<f32>(&*result) };
+        assert_eq!(result_data[0], 2.5);
     }
 
     #[test]
@@ -508,6 +633,10 @@ mod tests {
         let result = max(&array, None).unwrap();
         assert_eq!(result.shape(), &Shape::from([1]));
         assert_eq!(result.dtype(), dtype::F32);
+
+        // Verify max result: max([1,5,3,2]) = 5
+        let result_data = unsafe { data_as_slice::<f32>(&*result) };
+        assert_eq!(result_data[0], 5.0);
     }
 
     #[test]
@@ -518,5 +647,10 @@ mod tests {
         let result = min(&array, Some(1)).unwrap();
         assert_eq!(result.shape(), &Shape::from([2])); // Min along axis 1
         assert_eq!(result.dtype(), dtype::F32);
+
+        // Verify min along axis 1: [[3,1],[4,2]] -> [min(3,1), min(4,2)] = [1, 2]
+        let result_data = unsafe { data_as_slice::<f32>(&*result) };
+        assert_eq!(result_data[0], 1.0);
+        assert_eq!(result_data[1], 2.0);
     }
 }

@@ -1,6 +1,6 @@
 //! Sorting and searching operations
 
-use crate::array::{data_as_slice, ensure_host_accessible, CpuBytesArray, NdArray};
+use crate::array::{data_as_slice, data_as_slice_mut, ensure_host_accessible, CpuBytesArray, NdArray};
 use crate::{DType, Shape};
 
 /// Sort array along specified axis
@@ -8,7 +8,7 @@ pub fn sort<A: NdArray>(
     array: &A,
     axis: Option<usize>,
     descending: bool,
-) -> Result<CpuBytesArray, String> {
+) -> Result<Box<dyn NdArray>, String> {
     ensure_host_accessible(array, "sort")?;
 
     match axis {
@@ -22,7 +22,7 @@ fn sort_axis<A: NdArray>(
     array: &A,
     axis: usize,
     descending: bool,
-) -> Result<CpuBytesArray, String> {
+) -> Result<Box<dyn NdArray>, String> {
     if axis >= array.shape().ndim() {
         return Err(format!(
             "Axis {} out of bounds for {}D array",
@@ -31,12 +31,12 @@ fn sort_axis<A: NdArray>(
         ));
     }
 
-    let mut result = CpuBytesArray::zeros(array.dtype(), array.shape().clone());
+    let mut result = array.zeros(array.shape().clone())?;
 
     match array.dtype() {
         DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
-            let result_data = unsafe { result.data_as_slice_mut::<f32>() };
+            let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
 
             if array.shape().ndim() == 1 {
                 // 1D tensor
@@ -84,7 +84,7 @@ fn sort_axis<A: NdArray>(
         }
         DType::F64 => {
             let tensor_data = unsafe { data_as_slice::<f64>(array) };
-            let result_data = unsafe { result.data_as_slice_mut::<f64>() };
+            let result_data = unsafe { data_as_slice_mut::<f64>(&mut *result) };
 
             if array.shape().ndim() == 1 {
                 let mut values: Vec<f64> = tensor_data.to_vec();
@@ -133,13 +133,13 @@ fn sort_axis<A: NdArray>(
 }
 
 /// Sort flattened array
-fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<CpuBytesArray, String> {
-    let mut result = CpuBytesArray::zeros(array.dtype(), array.shape().clone());
+fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArray>, String> {
+    let mut result = array.zeros(array.shape().clone())?;
 
     match array.dtype() {
         DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
-            let result_data = unsafe { result.data_as_slice_mut::<f32>() };
+            let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
 
             let mut values: Vec<f32> = tensor_data.to_vec();
             if descending {
@@ -151,7 +151,7 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<CpuBytesArray
         }
         DType::F64 => {
             let tensor_data = unsafe { data_as_slice::<f64>(array) };
-            let result_data = unsafe { result.data_as_slice_mut::<f64>() };
+            let result_data = unsafe { data_as_slice_mut::<f64>(&mut *result) };
 
             let mut values: Vec<f64> = tensor_data.to_vec();
             if descending {
@@ -172,7 +172,7 @@ pub fn argsort<A: NdArray>(
     array: &A,
     _axis: Option<usize>,
     descending: bool,
-) -> Result<CpuBytesArray, String> {
+) -> Result<Box<dyn NdArray>, String> {
     ensure_host_accessible(array, "argsort")?;
 
     if array.shape().ndim() != 1 {
@@ -219,7 +219,7 @@ pub fn argsort<A: NdArray>(
         _ => return Err(format!("Argsort not implemented for {}", array.dtype())),
     }
 
-    Ok(CpuBytesArray::new(
+    Ok(Box::new(CpuBytesArray::new(
         unsafe {
             std::slice::from_raw_parts(
                 indices.as_ptr() as *const u8,
@@ -229,7 +229,7 @@ pub fn argsort<A: NdArray>(
         },
         Shape::from([array.len()]),
         DType::I32,
-    ))
+    )))
 }
 
 /// Find indices where condition is true (basic boolean indexing support)
