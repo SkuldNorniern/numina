@@ -80,6 +80,11 @@ pub trait NdArray: std::fmt::Debug {
         Err("Creating new arrays not supported for this backend".to_string())
     }
 
+    /// Create a new array of the same backend type with a specific dtype
+    fn new_array(&self, shape: Shape, dtype: DType) -> Result<Box<dyn NdArray>, String> {
+        Err("Creating new arrays not supported for this backend".to_string())
+    }
+
     /// Reshape this array to a new shape, returning a new array
     fn reshape(&self, _new_shape: Shape) -> Result<Box<dyn NdArray>, String> {
         // Default implementation for arrays that don't support reshape
@@ -391,6 +396,10 @@ impl NdArray for CpuBytesArray {
         Ok(Box::new(CpuBytesArray::ones(self.dtype, shape)))
     }
 
+    fn new_array(&self, shape: Shape, dtype: DType) -> Result<Box<dyn NdArray>, String> {
+        Ok(Box::new(CpuBytesArray::zeros(dtype, shape)))
+    }
+
     fn reshape(&self, new_shape: Shape) -> Result<Box<dyn NdArray>, String> {
         if new_shape.len() != self.len {
             return Err(format!(
@@ -601,6 +610,18 @@ where
         }
 
         Ok(Box::new(Array::new(data, shape)?))
+    }
+
+    fn new_array(&self, shape: Shape, dtype: DType) -> Result<Box<dyn NdArray>, String> {
+        if dtype == T::DTYPE {
+            // Can create Array<T> directly
+            let len = shape.len();
+            let data = vec![T::default(); len];
+            Ok(Box::new(Array::new(data, shape)?))
+        } else {
+            // Fall back to CpuBytesArray for different dtypes
+            Ok(Box::new(CpuBytesArray::zeros(dtype, shape)))
+        }
     }
 }
 

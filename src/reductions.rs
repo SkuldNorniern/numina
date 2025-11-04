@@ -1,12 +1,6 @@
 //! Reduction operations (sum, mean, max, min, etc.)
 
-<<<<<<< HEAD
 use crate::array::{NdArray, data_as_slice, data_as_slice_mut, ensure_host_accessible};
-=======
-use crate::array::{
-    CpuBytesArray, NdArray, data_as_slice, data_as_slice_mut, ensure_host_accessible,
-};
->>>>>>> b996c862c8d52a59d50b3035ebc36183885da337
 use crate::{DType, Shape};
 
 /// Sum reduction along specified axis (or all axes if None)
