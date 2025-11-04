@@ -1,7 +1,7 @@
 //! Element-wise array operations built on the `NdArray` abstraction
 
 use crate::array::{
-    CpuBytesArray, NdArray, data_as_slice, data_as_slice_mut, ensure_binary_compat,
+    NdArray, data_as_slice, data_as_slice_mut, ensure_binary_compat,
     ensure_host_accessible,
 };
 use crate::{DType, Shape};
@@ -127,7 +127,7 @@ where
             }
         }
         DType::Bool => {
-            return Err(format!("Addition not supported for boolean type"));
+            return Err("Addition not supported for boolean type".to_string());
         }
         DType::QI4 | DType::QU8 => {
             return Err(format!(
@@ -261,7 +261,7 @@ where
             }
         }
         DType::Bool => {
-            return Err(format!("Multiplication not supported for boolean type"));
+            return Err("Multiplication not supported for boolean type".to_string());
         }
         DType::QI4 | DType::QU8 => {
             return Err(format!(
@@ -731,7 +731,7 @@ pub fn abs<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
             ));
         }
         DType::Bool => {
-            return Err(format!("Abs not applicable for boolean type"));
+            return Err("Abs not applicable for boolean type".to_string());
         }
         DType::QI4 | DType::QU8 => {
             return Err(format!(
@@ -849,7 +849,7 @@ pub fn sign<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
             ));
         }
         DType::Bool => {
-            return Err(format!("Sign not applicable for boolean type"));
+            return Err("Sign not applicable for boolean type".to_string());
         }
         DType::QI4 | DType::QU8 => {
             return Err(format!(

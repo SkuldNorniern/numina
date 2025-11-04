@@ -228,7 +228,7 @@ fn sum_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
             result_data[0] = sum;
         }
         DType::Bool => {
-            return Err(format!("Sum not supported for boolean type"));
+            return Err("Sum not supported for boolean type".to_string());
         }
         DType::QI4 | DType::QU8 => {
             return Err(format!(
@@ -340,7 +340,7 @@ pub fn mean<A: NdArray>(array: &A, axis: Option<usize>) -> Result<Box<dyn NdArra
             }
         }
         DType::Bool => {
-            return Err(format!("Mean not supported for boolean type"));
+            return Err("Mean not supported for boolean type".to_string());
         }
         DType::QI4 | DType::QU8 => {
             return Err(format!(

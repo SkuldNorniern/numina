@@ -572,7 +572,7 @@ where
     fn zeros(&self, shape: Shape) -> Result<Box<dyn NdArray>, String> {
         let len = shape.len();
         let data = vec![T::default(); len];
-        Ok(Box::new(Array::new(data, shape).map_err(|e| e)?))
+        Ok(Box::new(Array::new(data, shape)?))
     }
 
     fn ones(&self, shape: Shape) -> Result<Box<dyn NdArray>, String> {
@@ -600,7 +600,7 @@ where
             // This is not ideal but works for now
         }
 
-        Ok(Box::new(Array::new(data, shape).map_err(|e| e)?))
+        Ok(Box::new(Array::new(data, shape)?))
     }
 }
 
