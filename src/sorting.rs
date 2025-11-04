@@ -1,10 +1,14 @@
 //! Sorting and searching operations
 
-use crate::array::{NdArray, CpuBytesArray, data_as_slice, ensure_host_accessible};
-use crate::{Shape, DType};
+use crate::array::{CpuBytesArray, NdArray, data_as_slice, ensure_host_accessible};
+use crate::{DType, Shape};
 
 /// Sort array along specified axis
-pub fn sort<A: NdArray>(array: &A, axis: Option<usize>, descending: bool) -> Result<CpuBytesArray, String> {
+pub fn sort<A: NdArray>(
+    array: &A,
+    axis: Option<usize>,
+    descending: bool,
+) -> Result<CpuBytesArray, String> {
     ensure_host_accessible(array, "sort")?;
 
     match axis {
@@ -14,7 +18,11 @@ pub fn sort<A: NdArray>(array: &A, axis: Option<usize>, descending: bool) -> Res
 }
 
 /// Sort along a specific axis
-fn sort_axis<A: NdArray>(array: &A, axis: usize, descending: bool) -> Result<CpuBytesArray, String> {
+fn sort_axis<A: NdArray>(
+    array: &A,
+    axis: usize,
+    descending: bool,
+) -> Result<CpuBytesArray, String> {
     if axis >= array.shape().ndim() {
         return Err(format!(
             "Axis {} out of bounds for {}D array",
@@ -46,7 +54,8 @@ fn sort_axis<A: NdArray>(array: &A, axis: usize, descending: bool) -> Result<Cpu
                 if axis == 0 {
                     // Sort along columns
                     for j in 0..cols {
-                        let mut column: Vec<f32> = (0..rows).map(|i| tensor_data[i * cols + j]).collect();
+                        let mut column: Vec<f32> =
+                            (0..rows).map(|i| tensor_data[i * cols + j]).collect();
                         if descending {
                             column.sort_by(|a, b| b.partial_cmp(a).unwrap());
                         } else {
@@ -59,7 +68,8 @@ fn sort_axis<A: NdArray>(array: &A, axis: usize, descending: bool) -> Result<Cpu
                 } else if axis == 1 {
                     // Sort along rows
                     for i in 0..rows {
-                        let mut row: Vec<f32> = (0..cols).map(|j| tensor_data[i * cols + j]).collect();
+                        let mut row: Vec<f32> =
+                            (0..cols).map(|j| tensor_data[i * cols + j]).collect();
                         if descending {
                             row.sort_by(|a, b| b.partial_cmp(a).unwrap());
                         } else {
@@ -89,7 +99,8 @@ fn sort_axis<A: NdArray>(array: &A, axis: usize, descending: bool) -> Result<Cpu
 
                 if axis == 0 {
                     for j in 0..cols {
-                        let mut column: Vec<f64> = (0..rows).map(|i| tensor_data[i * cols + j]).collect();
+                        let mut column: Vec<f64> =
+                            (0..rows).map(|i| tensor_data[i * cols + j]).collect();
                         if descending {
                             column.sort_by(|a, b| b.partial_cmp(a).unwrap());
                         } else {
@@ -101,7 +112,8 @@ fn sort_axis<A: NdArray>(array: &A, axis: usize, descending: bool) -> Result<Cpu
                     }
                 } else if axis == 1 {
                     for i in 0..rows {
-                        let mut row: Vec<f64> = (0..cols).map(|j| tensor_data[i * cols + j]).collect();
+                        let mut row: Vec<f64> =
+                            (0..cols).map(|j| tensor_data[i * cols + j]).collect();
                         if descending {
                             row.sort_by(|a, b| b.partial_cmp(a).unwrap());
                         } else {
@@ -156,7 +168,11 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<CpuBytesArray
 }
 
 /// Get indices that would sort the array
-pub fn argsort<A: NdArray>(array: &A, _axis: Option<usize>, descending: bool) -> Result<CpuBytesArray, String> {
+pub fn argsort<A: NdArray>(
+    array: &A,
+    _axis: Option<usize>,
+    descending: bool,
+) -> Result<CpuBytesArray, String> {
     ensure_host_accessible(array, "argsort")?;
 
     if array.shape().ndim() != 1 {
@@ -171,11 +187,15 @@ pub fn argsort<A: NdArray>(array: &A, _axis: Option<usize>, descending: bool) ->
 
             if descending {
                 indices.sort_by(|&a, &b| {
-                    tensor_data[b as usize].partial_cmp(&tensor_data[a as usize]).unwrap()
+                    tensor_data[b as usize]
+                        .partial_cmp(&tensor_data[a as usize])
+                        .unwrap()
                 });
             } else {
                 indices.sort_by(|&a, &b| {
-                    tensor_data[a as usize].partial_cmp(&tensor_data[b as usize]).unwrap()
+                    tensor_data[a as usize]
+                        .partial_cmp(&tensor_data[b as usize])
+                        .unwrap()
                 });
             }
         }
@@ -184,11 +204,15 @@ pub fn argsort<A: NdArray>(array: &A, _axis: Option<usize>, descending: bool) ->
 
             if descending {
                 indices.sort_by(|&a, &b| {
-                    tensor_data[b as usize].partial_cmp(&tensor_data[a as usize]).unwrap()
+                    tensor_data[b as usize]
+                        .partial_cmp(&tensor_data[a as usize])
+                        .unwrap()
                 });
             } else {
                 indices.sort_by(|&a, &b| {
-                    tensor_data[a as usize].partial_cmp(&tensor_data[b as usize]).unwrap()
+                    tensor_data[a as usize]
+                        .partial_cmp(&tensor_data[b as usize])
+                        .unwrap()
                 });
             }
         }
