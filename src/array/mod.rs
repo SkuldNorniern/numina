@@ -347,7 +347,6 @@ impl CpuBytesArray {
         &mut self.data
     }
 
-
     pub fn into_boxed(self) -> Box<dyn NdArray> {
         Box::new(self)
     }
