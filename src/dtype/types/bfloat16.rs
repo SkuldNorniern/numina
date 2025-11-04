@@ -5,7 +5,7 @@ use std::fmt;
 
 /// Brain Float 16-bit floating point type
 /// Uses the same 16 bits as IEEE half-precision but with different exponent/manitssa split
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct BFloat16(u16);
 
 impl BFloat16 {

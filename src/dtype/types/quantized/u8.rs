@@ -5,7 +5,7 @@ use std::fmt;
 
 /// Quantized 8-bit type with offset for asymmetric quantization
 /// Note: This is a simplified example. Real quantization would need proper metadata handling.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct QuantizedU8 {
     value: u8,
     // For simplicity, we'll store scale as bits that can be compared

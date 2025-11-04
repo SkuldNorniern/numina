@@ -5,7 +5,7 @@ use std::fmt;
 
 /// Quantized 4-bit signed integer type
 /// Stores two INT4 values per byte for memory efficiency
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct QuantizedI4 {
     // Two 4-bit values packed into one byte
     // High 4 bits: first value, Low 4 bits: second value
