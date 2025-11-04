@@ -1,5 +1,3 @@
-use std::fmt;
-
 use crate::array::Shape;
 
 /// Represents memory layout strides

@@ -64,6 +64,19 @@ pub trait NdArray: std::fmt::Debug {
 
     /// Clone the array into a new owned instance
     fn clone_array(&self) -> Box<dyn NdArray>;
+
+    /// Reshape this array to a new shape, returning a new array
+    fn reshape(&self, _new_shape: Shape) -> Result<Box<dyn NdArray>, String> {
+        // Default implementation for arrays that don't support reshape
+        Err("Reshape not supported for this array backend".to_string())
+    }
+
+    /// Transpose this array (2D only), returning a new array
+    fn transpose(&self) -> Result<Box<dyn NdArray>, String> {
+        // Default implementation for arrays that don't support transpose
+        Err("Transpose not supported for this array backend".to_string())
+    }
+
 }
 
 /// Convenience helper to reinterpret data as slice of `T`
@@ -81,6 +94,45 @@ pub unsafe fn data_as_slice_mut<T>(array: &mut dyn NdArray) -> &mut [T] {
     debug_assert_eq!(mem::size_of::<T>() * array.len(), array.byte_len());
     let bytes = unsafe { array.as_mut_bytes() };
     unsafe { std::slice::from_raw_parts_mut(bytes.as_mut_ptr() as *mut T, array.len()) }
+}
+
+/// Ensure array is host-accessible and contiguous
+pub fn ensure_host_accessible<A: NdArray>(array: &A, op: &str) -> Result<(), String> {
+    if !array.is_host_accessible() {
+        return Err(format!(
+            "{op} requires host-accessible memory (backend does not expose CPU access yet)"
+        ));
+    }
+    if !array.is_contiguous() {
+        return Err(format!(
+            "{op} currently supports only contiguous row-major layouts"
+        ));
+    }
+    Ok(())
+}
+
+/// Ensure arrays are compatible for binary operations
+pub fn ensure_binary_compat<A: NdArray, B: NdArray>(a: &A, b: &B, op: &str) -> Result<(), String> {
+    ensure_host_accessible(a, op)?;
+    ensure_host_accessible(b, op)?;
+
+    if a.dtype() != b.dtype() {
+        return Err(format!(
+            "{op} dtype mismatch: {} vs {}",
+            a.dtype(),
+            b.dtype()
+        ));
+    }
+
+    if a.shape() != b.shape() {
+        return Err(format!(
+            "{op} shape mismatch: {} vs {}",
+            a.shape(),
+            b.shape()
+        ));
+    }
+
+    Ok(())
 }
 
 /// CPU-resident byte-addressable array used as the default tensor storage
@@ -268,6 +320,70 @@ impl NdArray for CpuBytesArray {
 
     fn clone_array(&self) -> Box<dyn NdArray> {
         Box::new(self.clone())
+    }
+
+    fn reshape(&self, new_shape: Shape) -> Result<Box<dyn NdArray>, String> {
+        if new_shape.len() != self.len {
+            return Err(format!(
+                "Cannot reshape {} elements into {}",
+                self.len, new_shape
+            ));
+        }
+
+        // Copy the data and create new CpuBytesArray with new shape
+        let mut bytes = vec![0u8; self.byte_len()];
+        unsafe {
+            std::ptr::copy_nonoverlapping(
+                self.as_bytes().as_ptr(),
+                bytes.as_mut_ptr(),
+                self.byte_len(),
+            );
+        }
+
+        Ok(Box::new(CpuBytesArray::new(bytes, new_shape, self.dtype)))
+    }
+
+    fn transpose(&self) -> Result<Box<dyn NdArray>, String> {
+        if self.shape.ndim() != 2 {
+            return Err("Transpose only supported for 2D arrays".to_string());
+        }
+
+        let new_shape = Shape::from([self.shape.dim(1), self.shape.dim(0)]);
+        let mut bytes = vec![0u8; self.byte_len()];
+
+        match self.dtype {
+            DType::F32 => {
+                let old_data = unsafe {
+                    std::slice::from_raw_parts(self.as_bytes().as_ptr() as *const f32, self.len)
+                };
+                let new_data = unsafe {
+                    std::slice::from_raw_parts_mut(bytes.as_mut_ptr() as *mut f32, self.len)
+                };
+
+                for i in 0..self.shape.dim(0) {
+                    for j in 0..self.shape.dim(1) {
+                        new_data[j * self.shape.dim(0) + i] = old_data[i * self.shape.dim(1) + j];
+                    }
+                }
+            }
+            DType::F64 => {
+                let old_data = unsafe {
+                    std::slice::from_raw_parts(self.as_bytes().as_ptr() as *const f64, self.len)
+                };
+                let new_data = unsafe {
+                    std::slice::from_raw_parts_mut(bytes.as_mut_ptr() as *mut f64, self.len)
+                };
+
+                for i in 0..self.shape.dim(0) {
+                    for j in 0..self.shape.dim(1) {
+                        new_data[j * self.shape.dim(0) + i] = old_data[i * self.shape.dim(1) + j];
+                    }
+                }
+            }
+            _ => return Err(format!("Transpose not implemented for {}", self.dtype)),
+        }
+
+        Ok(Box::new(CpuBytesArray::new(bytes, new_shape, self.dtype)))
     }
 }
 
