@@ -9,6 +9,12 @@ pub mod types;
 // Re-exports for convenience
 pub use types::{BFloat16, QuantizedU8};
 
+/// Trait for mapping concrete Rust types to Numina dtypes
+pub trait DTypeLike: Copy {
+    /// Static dtype descriptor for this Rust type
+    const DTYPE: DType;
+}
+
 /// Trait for types that can be used as tensor data types
 pub trait DTypeCandidate: Copy + Clone + PartialEq + Eq + std::hash::Hash {
     /// Returns the size in bytes of this data type
@@ -195,6 +201,51 @@ impl fmt::Display for DType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.type_name())
     }
+}
+
+// DTypeLike implementations for primitive Rust types
+impl DTypeLike for f32 {
+    const DTYPE: DType = DType::F32;
+}
+
+impl DTypeLike for f64 {
+    const DTYPE: DType = DType::F64;
+}
+
+impl DTypeLike for i8 {
+    const DTYPE: DType = DType::I8;
+}
+
+impl DTypeLike for i16 {
+    const DTYPE: DType = DType::I16;
+}
+
+impl DTypeLike for i32 {
+    const DTYPE: DType = DType::I32;
+}
+
+impl DTypeLike for i64 {
+    const DTYPE: DType = DType::I64;
+}
+
+impl DTypeLike for u8 {
+    const DTYPE: DType = DType::U8;
+}
+
+impl DTypeLike for u16 {
+    const DTYPE: DType = DType::U16;
+}
+
+impl DTypeLike for u32 {
+    const DTYPE: DType = DType::U32;
+}
+
+impl DTypeLike for u64 {
+    const DTYPE: DType = DType::U64;
+}
+
+impl DTypeLike for bool {
+    const DTYPE: DType = DType::Bool;
 }
 
 // Convenience constants
