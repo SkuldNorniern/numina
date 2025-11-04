@@ -4,8 +4,8 @@ pub mod stride;
 
 use std::mem;
 
-use crate::dtype::DTypeLike;
 use crate::DType;
+use crate::dtype::DTypeLike;
 
 // Re-export the shape and stride modules
 pub use {shape::Shape, stride::Strides};
@@ -76,7 +76,6 @@ pub trait NdArray: std::fmt::Debug {
         // Default implementation for arrays that don't support transpose
         Err("Transpose not supported for this array backend".to_string())
     }
-
 }
 
 /// Convenience helper to reinterpret data as slice of `T`
@@ -292,12 +291,7 @@ impl CpuBytesArray {
     /// # Safety
     /// T must match the actual dtype stored
     pub(crate) unsafe fn data_as_slice_mut<T>(&mut self) -> &mut [T] {
-        unsafe {
-            std::slice::from_raw_parts_mut(
-                self.data.as_mut_ptr() as *mut T,
-                self.len,
-            )
-        }
+        unsafe { std::slice::from_raw_parts_mut(self.data.as_mut_ptr() as *mut T, self.len) }
     }
 
     pub fn into_boxed(self) -> Box<dyn NdArray> {
@@ -399,7 +393,6 @@ impl NdArray for CpuBytesArray {
     }
 }
 
-
 /// Dense CPU-backed N-dimensional array with a concrete element type
 #[derive(Debug, Clone)]
 pub struct Array<T>
@@ -420,7 +413,8 @@ where
         if data.len() != shape.len() {
             return Err(format!(
                 "Data length {} does not match shape {}",
-                data.len(), shape
+                data.len(),
+                shape
             ));
         }
 
@@ -459,10 +453,13 @@ where
         &self.strides
     }
 
-
     /// Internal constructor used for zero-copy conversions from tensors
     pub(crate) fn from_raw_parts(data: Vec<T>, shape: Shape, strides: Strides) -> Self {
-        Self { data, shape, strides }
+        Self {
+            data,
+            shape,
+            strides,
+        }
     }
 }
 
@@ -509,7 +506,6 @@ where
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -537,4 +533,3 @@ mod tests {
         assert_eq!(cpu_bytes.len(), 4);
     }
 }
-

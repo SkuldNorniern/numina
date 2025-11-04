@@ -15,10 +15,10 @@ pub use dtype::{
     types::{BFloat16, QuantizedI4, QuantizedU8},
 };
 pub use ops::{
-    add, mul, add_scalar, exp, log, sqrt, sin, cos, tan, asin, acos, atan, pow, abs, sign, matmul
+    abs, acos, add, add_scalar, asin, atan, cos, exp, log, matmul, mul, pow, sign, sin, sqrt, tan,
 };
-pub use reductions::{sum, mean, max, min, prod};
-pub use sorting::{sort, argsort, where_condition};
+pub use reductions::{max, mean, min, prod, sum};
+pub use sorting::{argsort, sort, where_condition};
 
 // Re-export commonly used types
 pub use DType::*;
