@@ -1,8 +1,7 @@
 //! Element-wise array operations built on the `NdArray` abstraction
 
 use crate::array::{
-    NdArray, data_as_slice, data_as_slice_mut, ensure_binary_compat,
-    ensure_host_accessible,
+    NdArray, data_as_slice, data_as_slice_mut, ensure_binary_compat, ensure_host_accessible,
 };
 use crate::{DType, Shape};
 

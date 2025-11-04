@@ -1,8 +1,6 @@
 //! Sorting and searching operations
 
-use crate::array::{
-    NdArray, data_as_slice, data_as_slice_mut, ensure_host_accessible,
-};
+use crate::array::{NdArray, data_as_slice, data_as_slice_mut, ensure_host_accessible};
 use crate::{DType, Shape};
 
 /// Sort array along specified axis
@@ -56,8 +54,9 @@ fn sort_axis<A: NdArray>(
 
                 if axis == 0 {
                     for j in 0..cols {
-                        let mut column: Vec<f64> =
-                            (0..rows).map(|i| tensor_data[i * cols + j] as f64).collect();
+                        let mut column: Vec<f64> = (0..rows)
+                            .map(|i| tensor_data[i * cols + j] as f64)
+                            .collect();
                         if descending {
                             column.sort_by(|a, b| b.partial_cmp(a).unwrap());
                         } else {
@@ -69,8 +68,9 @@ fn sort_axis<A: NdArray>(
                     }
                 } else if axis == 1 {
                     for i in 0..rows {
-                        let mut row: Vec<f64> =
-                            (0..cols).map(|j| tensor_data[i * cols + j] as f64).collect();
+                        let mut row: Vec<f64> = (0..cols)
+                            .map(|j| tensor_data[i * cols + j] as f64)
+                            .collect();
                         if descending {
                             row.sort_by(|a, b| b.partial_cmp(a).unwrap());
                         } else {
@@ -199,7 +199,10 @@ fn sort_axis<A: NdArray>(
             return Err(format!("Sort not supported for boolean type"));
         }
         DType::QI4 | DType::QU8 => {
-            return Err(format!("Sort not implemented for quantized types {}", array.dtype()));
+            return Err(format!(
+                "Sort not implemented for quantized types {}",
+                array.dtype()
+            ));
         }
     }
 
@@ -325,7 +328,10 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
             return Err(format!("Sort not supported for boolean type"));
         }
         DType::QI4 | DType::QU8 => {
-            return Err(format!("Sort not implemented for quantized types {}", array.dtype()));
+            return Err(format!(
+                "Sort not implemented for quantized types {}",
+                array.dtype()
+            ));
         }
     }
 
@@ -353,128 +359,93 @@ pub fn argsort<A: NdArray>(
             let values: Vec<f64> = tensor_data.iter().map(|&x| x as f64).collect();
 
             if descending {
-                indices.sort_by(|&a, &b| {
-                    values[b as usize]
-                        .partial_cmp(&values[a as usize])
-                        .unwrap()
-                });
+                indices
+                    .sort_by(|&a, &b| values[b as usize].partial_cmp(&values[a as usize]).unwrap());
             } else {
-                indices.sort_by(|&a, &b| {
-                    values[a as usize]
-                        .partial_cmp(&values[b as usize])
-                        .unwrap()
-                });
+                indices
+                    .sort_by(|&a, &b| values[a as usize].partial_cmp(&values[b as usize]).unwrap());
             }
         }
         DType::I8 => {
             let tensor_data = unsafe { data_as_slice::<i8>(array) };
 
             if descending {
-                indices.sort_by(|&a, &b| {
-                    tensor_data[b as usize].cmp(&tensor_data[a as usize])
-                });
+                indices.sort_by(|&a, &b| tensor_data[b as usize].cmp(&tensor_data[a as usize]));
             } else {
-                indices.sort_by(|&a, &b| {
-                    tensor_data[a as usize].cmp(&tensor_data[b as usize])
-                });
+                indices.sort_by(|&a, &b| tensor_data[a as usize].cmp(&tensor_data[b as usize]));
             }
         }
         DType::I16 => {
             let tensor_data = unsafe { data_as_slice::<i16>(array) };
 
             if descending {
-                indices.sort_by(|&a, &b| {
-                    tensor_data[b as usize].cmp(&tensor_data[a as usize])
-                });
+                indices.sort_by(|&a, &b| tensor_data[b as usize].cmp(&tensor_data[a as usize]));
             } else {
-                indices.sort_by(|&a, &b| {
-                    tensor_data[a as usize].cmp(&tensor_data[b as usize])
-                });
+                indices.sort_by(|&a, &b| tensor_data[a as usize].cmp(&tensor_data[b as usize]));
             }
         }
         DType::I32 => {
             let tensor_data = unsafe { data_as_slice::<i32>(array) };
 
             if descending {
-                indices.sort_by(|&a, &b| {
-                    tensor_data[b as usize].cmp(&tensor_data[a as usize])
-                });
+                indices.sort_by(|&a, &b| tensor_data[b as usize].cmp(&tensor_data[a as usize]));
             } else {
-                indices.sort_by(|&a, &b| {
-                    tensor_data[a as usize].cmp(&tensor_data[b as usize])
-                });
+                indices.sort_by(|&a, &b| tensor_data[a as usize].cmp(&tensor_data[b as usize]));
             }
         }
         DType::I64 => {
             let tensor_data = unsafe { data_as_slice::<i64>(array) };
 
             if descending {
-                indices.sort_by(|&a, &b| {
-                    tensor_data[b as usize].cmp(&tensor_data[a as usize])
-                });
+                indices.sort_by(|&a, &b| tensor_data[b as usize].cmp(&tensor_data[a as usize]));
             } else {
-                indices.sort_by(|&a, &b| {
-                    tensor_data[a as usize].cmp(&tensor_data[b as usize])
-                });
+                indices.sort_by(|&a, &b| tensor_data[a as usize].cmp(&tensor_data[b as usize]));
             }
         }
         DType::U8 => {
             let tensor_data = unsafe { data_as_slice::<u8>(array) };
 
             if descending {
-                indices.sort_by(|&a, &b| {
-                    tensor_data[b as usize].cmp(&tensor_data[a as usize])
-                });
+                indices.sort_by(|&a, &b| tensor_data[b as usize].cmp(&tensor_data[a as usize]));
             } else {
-                indices.sort_by(|&a, &b| {
-                    tensor_data[a as usize].cmp(&tensor_data[b as usize])
-                });
+                indices.sort_by(|&a, &b| tensor_data[a as usize].cmp(&tensor_data[b as usize]));
             }
         }
         DType::U16 => {
             let tensor_data = unsafe { data_as_slice::<u16>(array) };
 
             if descending {
-                indices.sort_by(|&a, &b| {
-                    tensor_data[b as usize].cmp(&tensor_data[a as usize])
-                });
+                indices.sort_by(|&a, &b| tensor_data[b as usize].cmp(&tensor_data[a as usize]));
             } else {
-                indices.sort_by(|&a, &b| {
-                    tensor_data[a as usize].cmp(&tensor_data[b as usize])
-                });
+                indices.sort_by(|&a, &b| tensor_data[a as usize].cmp(&tensor_data[b as usize]));
             }
         }
         DType::U32 => {
             let tensor_data = unsafe { data_as_slice::<u32>(array) };
 
             if descending {
-                indices.sort_by(|&a, &b| {
-                    tensor_data[b as usize].cmp(&tensor_data[a as usize])
-                });
+                indices.sort_by(|&a, &b| tensor_data[b as usize].cmp(&tensor_data[a as usize]));
             } else {
-                indices.sort_by(|&a, &b| {
-                    tensor_data[a as usize].cmp(&tensor_data[b as usize])
-                });
+                indices.sort_by(|&a, &b| tensor_data[a as usize].cmp(&tensor_data[b as usize]));
             }
         }
         DType::U64 => {
             let tensor_data = unsafe { data_as_slice::<u64>(array) };
 
             if descending {
-                indices.sort_by(|&a, &b| {
-                    tensor_data[b as usize].cmp(&tensor_data[a as usize])
-                });
+                indices.sort_by(|&a, &b| tensor_data[b as usize].cmp(&tensor_data[a as usize]));
             } else {
-                indices.sort_by(|&a, &b| {
-                    tensor_data[a as usize].cmp(&tensor_data[b as usize])
-                });
+                indices.sort_by(|&a, &b| tensor_data[a as usize].cmp(&tensor_data[b as usize]));
             }
         }
         DType::Bool => {
             return Err(format!("Argsort not supported for boolean type"));
         }
         DType::QI4 | DType::QU8 => {
-            return Err(format!("Argsort not implemented for quantized types {}", array.dtype()));
+            return Err(format!(
+                "Argsort not implemented for quantized types {}",
+                array.dtype()
+            ));
         }
     }
 
@@ -581,7 +552,10 @@ where
             return Err(format!("Where not supported for boolean type"));
         }
         DType::QI4 | DType::QU8 => {
-            return Err(format!("Where not implemented for quantized types {}", array.dtype()));
+            return Err(format!(
+                "Where not implemented for quantized types {}",
+                array.dtype()
+            ));
         }
     }
 
