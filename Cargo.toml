@@ -2,5 +2,13 @@
 name = "numina"
 version = "0.0.1"
 edition = "2024"
+description = "Backend-agnostic array library for high-performance computing in Rust"
+license = "Apache-2.0"
+repository = "https://github.com/SkuldNorniern/numina"
+homepage = "https://github.com/SkuldNorniern/numina"
+documentation = "https://docs.rs/numina"
+keywords = ["array", "tensor", "ndarray", "numerical"]
+categories = ["science", "mathematics", "data-structures"]
+readme = "README.md"
 
 [dependencies]
