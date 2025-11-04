@@ -4,8 +4,8 @@ pub mod stride;
 
 use std::mem;
 
-use crate::DType;
 use crate::dtype::DTypeLike;
+use crate::DType;
 
 // Re-export the shape and stride modules
 pub use {shape::Shape, stride::Strides};
@@ -24,6 +24,11 @@ pub trait NdArray: std::fmt::Debug {
 
     /// Number of logical elements stored in the array
     fn len(&self) -> usize;
+
+    /// Returns true if the array contains no elements
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 
     /// Data type of the elements stored in the array
     fn dtype(&self) -> DType;
@@ -89,6 +94,10 @@ pub unsafe fn data_as_slice<T>(array: &dyn NdArray) -> &[T] {
 }
 
 /// Mutable variant of [`data_as_slice`]
+///
+/// # Safety
+/// Caller must ensure that `T` matches the storage dtype and that no other
+/// references to the array data exist.
 pub unsafe fn data_as_slice_mut<T>(array: &mut dyn NdArray) -> &mut [T] {
     debug_assert_eq!(mem::size_of::<T>() * array.len(), array.byte_len());
     let bytes = unsafe { array.as_mut_bytes() };
@@ -219,7 +228,43 @@ impl CpuBytesArray {
                     let data = unsafe { data_as_slice_mut::<f64>(&mut storage) };
                     data[idx] = 1.0;
                 }
-                _ => unimplemented!("Identity matrix for {} not implemented", storage.dtype),
+                DType::I8 => {
+                    let data = unsafe { data_as_slice_mut::<i8>(&mut storage) };
+                    data[idx] = 1;
+                }
+                DType::I16 => {
+                    let data = unsafe { data_as_slice_mut::<i16>(&mut storage) };
+                    data[idx] = 1;
+                }
+                DType::I32 => {
+                    let data = unsafe { data_as_slice_mut::<i32>(&mut storage) };
+                    data[idx] = 1;
+                }
+                DType::I64 => {
+                    let data = unsafe { data_as_slice_mut::<i64>(&mut storage) };
+                    data[idx] = 1;
+                }
+                DType::U8 => {
+                    let data = unsafe { data_as_slice_mut::<u8>(&mut storage) };
+                    data[idx] = 1;
+                }
+                DType::U16 => {
+                    let data = unsafe { data_as_slice_mut::<u16>(&mut storage) };
+                    data[idx] = 1;
+                }
+                DType::U32 => {
+                    let data = unsafe { data_as_slice_mut::<u32>(&mut storage) };
+                    data[idx] = 1;
+                }
+                DType::U64 => {
+                    let data = unsafe { data_as_slice_mut::<u64>(&mut storage) };
+                    data[idx] = 1;
+                }
+                DType::Bool => {
+                    let data = unsafe { data_as_slice_mut::<bool>(&mut storage) };
+                    data[idx] = true;
+                }
+                _ => panic!("Identity matrix for {} not supported", storage.dtype),
             }
         }
 
@@ -454,6 +499,7 @@ where
     }
 
     /// Internal constructor used for zero-copy conversions from tensors
+    #[allow(dead_code)]
     pub(crate) fn from_raw_parts(data: Vec<T>, shape: Shape, strides: Strides) -> Self {
         Self {
             data,
