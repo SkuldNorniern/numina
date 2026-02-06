@@ -1,8 +1,11 @@
 //! Primitive type conversions for DType
 
 use super::{
+    types::{
+        BFloat16, BFloat8, Complex128, Complex32, Complex64, Float16, Float8E4M3Fn, Float8E5M2,
+        QuantizedI4, QuantizedU8,
+    },
     DType,
-    types::{BFloat16, QuantizedI4, QuantizedU8},
 };
 
 // Conversion traits
@@ -75,6 +78,48 @@ impl From<bool> for DType {
 impl From<BFloat16> for DType {
     fn from(_: BFloat16) -> Self {
         DType::BF16
+    }
+}
+
+impl From<BFloat8> for DType {
+    fn from(_: BFloat8) -> Self {
+        DType::BF8
+    }
+}
+
+impl From<Float16> for DType {
+    fn from(_: Float16) -> Self {
+        DType::F16
+    }
+}
+
+impl From<Complex32> for DType {
+    fn from(_: Complex32) -> Self {
+        DType::Complex32
+    }
+}
+
+impl From<Complex64> for DType {
+    fn from(_: Complex64) -> Self {
+        DType::Complex64
+    }
+}
+
+impl From<Complex128> for DType {
+    fn from(_: Complex128) -> Self {
+        DType::Complex128
+    }
+}
+
+impl From<Float8E4M3Fn> for DType {
+    fn from(_: Float8E4M3Fn) -> Self {
+        DType::F8E4M3FN
+    }
+}
+
+impl From<Float8E5M2> for DType {
+    fn from(_: Float8E5M2) -> Self {
+        DType::F8E5M2
     }
 }
 
