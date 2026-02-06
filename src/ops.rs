@@ -1,7 +1,7 @@
 //! Element-wise array operations built on the `NdArray` abstraction
 
 use crate::array::{
-    data_as_slice, data_as_slice_mut, ensure_binary_compat, ensure_host_accessible, NdArray,
+    NdArray, data_as_slice, data_as_slice_mut, ensure_binary_compat, ensure_host_accessible,
 };
 use crate::{DType, Shape};
 
@@ -1619,8 +1619,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::array::Array;
     use crate::Shape;
+    use crate::array::Array;
 
     #[test]
     fn test_add_array() {

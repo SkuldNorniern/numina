@@ -20,10 +20,12 @@ impl Float8E4M3Fn {
         decode_e4m3fn(self.0)
     }
 
+    #[cfg(test)]
     pub(crate) fn from_bits(bits: u8) -> Self {
         Float8E4M3Fn(bits)
     }
 
+    #[cfg(test)]
     pub(crate) fn to_bits(self) -> u8 {
         self.0
     }
@@ -38,10 +40,12 @@ impl Float8E5M2 {
         decode_e5m2(self.0)
     }
 
+    #[cfg(test)]
     pub(crate) fn from_bits(bits: u8) -> Self {
         Float8E5M2(bits)
     }
 
+    #[cfg(test)]
     pub(crate) fn to_bits(self) -> u8 {
         self.0
     }
@@ -186,7 +190,7 @@ fn encode_e4m3fn(value: f32) -> u8 {
 
     if exp_unbiased < min_normal_exp {
         let scaled = abs / min_normal * (1u32 << (MANT_BITS as u32)) as f64;
-        let mut mant = round_to_even(scaled);
+        let mant = round_to_even(scaled);
         if mant <= 0 {
             return sign << 7;
         }
@@ -279,7 +283,12 @@ fn encode_e5m2(value: f32) -> u8 {
     let min_normal = 2f64.powi(min_normal_exp);
     let max_exp_field = (exp_mask - 1) as i32;
     let max_normal_exp = max_exp_field - BIAS;
+    let max_finite = (2.0 - 2f64.powi(-MANT_BITS)) * 2f64.powi(max_normal_exp);
     let exp_unbiased = abs.log2().floor() as i32;
+
+    if abs > max_finite {
+        return (sign << 7) | (exp_mask << (MANT_BITS as u32));
+    }
 
     if exp_unbiased > max_normal_exp {
         return (sign << 7) | (exp_mask << (MANT_BITS as u32));
@@ -287,7 +296,7 @@ fn encode_e5m2(value: f32) -> u8 {
 
     if exp_unbiased < min_normal_exp {
         let scaled = abs / min_normal * (1u32 << (MANT_BITS as u32)) as f64;
-        let mut mant = round_to_even(scaled);
+        let mant = round_to_even(scaled);
         if mant <= 0 {
             return sign << 7;
         }
@@ -333,11 +342,7 @@ fn decode_e5m2(bits: u8) -> f32 {
             frac * 2f32.powi(1 - BIAS)
         }
     } else if exp == exp_mask as i32 {
-        if mant == 0 {
-            f32::INFINITY
-        } else {
-            f32::NAN
-        }
+        if mant == 0 { f32::INFINITY } else { f32::NAN }
     } else {
         let frac = 1.0 + mant as f32 / (1 << MANT_BITS) as f32;
         frac * 2f32.powi(exp - BIAS)
@@ -382,6 +387,12 @@ mod tests {
         let max = Float8E4M3Fn::from_f32(448.0);
         assert_eq!(max.to_bits(), 0x7E);
         assert_eq!(max.to_f32(), 448.0);
+        let min_normal = Float8E4M3Fn::from_bits(0x08);
+        assert_eq!(min_normal.to_f32(), 0.015625);
+        assert_eq!(Float8E4M3Fn::from_f32(0.015625).to_bits(), 0x08);
+        let min_sub = Float8E4M3Fn::from_bits(0x01);
+        assert_eq!(min_sub.to_f32(), 0.001953125);
+        assert_eq!(Float8E4M3Fn::from_f32(0.001953125).to_bits(), 0x01);
         let overflow = Float8E4M3Fn::from_f32(480.0);
         assert_eq!(overflow.to_bits(), 0x7E);
         let inf = Float8E4M3Fn::from_f32(f32::INFINITY);
@@ -396,6 +407,12 @@ mod tests {
         let max = Float8E5M2::from_f32(57344.0);
         assert_eq!(max.to_bits(), 0x7B);
         assert_eq!(max.to_f32(), 57344.0);
+        let min_normal = Float8E5M2::from_bits(0x04);
+        assert_eq!(min_normal.to_f32(), 6.103515625e-05);
+        assert_eq!(Float8E5M2::from_f32(6.103515625e-05).to_bits(), 0x04);
+        let min_sub = Float8E5M2::from_bits(0x01);
+        assert_eq!(min_sub.to_f32(), 1.52587890625e-05);
+        assert_eq!(Float8E5M2::from_f32(1.52587890625e-05).to_bits(), 0x01);
         let overflow = Float8E5M2::from_f32(60000.0);
         assert_eq!(overflow.to_bits(), 0x7C);
         let inf = Float8E5M2::from_f32(f32::INFINITY);
@@ -409,12 +426,16 @@ mod tests {
     fn float8_rtne_rounding() {
         let e4m3_low = Float8E4M3Fn::from_f32(1.0625);
         assert_eq!(e4m3_low.to_f32(), 1.0);
+        assert_eq!(e4m3_low.to_bits(), 0x38);
         let e4m3_high = Float8E4M3Fn::from_f32(1.1875);
         assert_eq!(e4m3_high.to_f32(), 1.25);
+        assert_eq!(e4m3_high.to_bits(), 0x3A);
         let e5m2_low = Float8E5M2::from_f32(1.125);
         assert_eq!(e5m2_low.to_f32(), 1.0);
+        assert_eq!(e5m2_low.to_bits(), 0x3C);
         let e5m2_high = Float8E5M2::from_f32(1.375);
         assert_eq!(e5m2_high.to_f32(), 1.5);
+        assert_eq!(e5m2_high.to_bits(), 0x3E);
     }
 
     #[test]
