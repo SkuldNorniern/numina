@@ -333,11 +333,7 @@ fn decode_e5m2(bits: u8) -> f32 {
             frac * 2f32.powi(1 - BIAS)
         }
     } else if exp == exp_mask as i32 {
-        if mant == 0 {
-            f32::INFINITY
-        } else {
-            f32::NAN
-        }
+        if mant == 0 { f32::INFINITY } else { f32::NAN }
     } else {
         let frac = 1.0 + mant as f32 / (1 << MANT_BITS) as f32;
         frac * 2f32.powi(exp - BIAS)

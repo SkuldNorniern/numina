@@ -1,11 +1,11 @@
 //! Primitive type conversions for DType
 
 use super::{
+    DType,
     types::{
-        BFloat16, BFloat8, Complex128, Complex32, Complex64, Float16, Float8E4M3Fn, Float8E5M2,
+        BFloat8, BFloat16, Complex32, Complex64, Complex128, Float8E4M3Fn, Float8E5M2, Float16,
         QuantizedI4, QuantizedU8,
     },
-    DType,
 };
 
 // Conversion traits

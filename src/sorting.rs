@@ -1,6 +1,6 @@
 //! Sorting and searching operations
 
-use crate::array::{data_as_slice, data_as_slice_mut, ensure_host_accessible, NdArray};
+use crate::array::{NdArray, data_as_slice, data_as_slice_mut, ensure_host_accessible};
 use crate::{DType, Shape};
 
 /// Sort array along specified axis
