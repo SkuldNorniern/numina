@@ -4,8 +4,8 @@ pub mod stride;
 
 use std::mem;
 
-use crate::DType;
 use crate::dtype::DTypeLike;
+use crate::DType;
 
 // Re-export the shape and stride modules
 pub use {shape::Shape, stride::Strides};
