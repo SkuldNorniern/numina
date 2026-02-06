@@ -47,7 +47,7 @@ impl DTypeCandidate for BFloat16 {
     }
 
     fn type_name(&self) -> &'static str {
-        "bf16"
+        "bfloat16"
     }
 
     unsafe fn from_bytes(bytes: &[u8]) -> Self {
@@ -94,6 +94,6 @@ mod tests {
         assert!(!bf16.is_int());
         assert!(bf16.is_signed());
         assert!(!bf16.is_bool());
-        assert_eq!(bf16.type_name(), "bf16");
+        assert_eq!(bf16.type_name(), "bfloat16");
     }
 }

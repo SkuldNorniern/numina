@@ -87,7 +87,7 @@ impl DTypeCandidate for QuantizedI4 {
     }
 
     fn type_name(&self) -> &'static str {
-        "qi4"
+        "quantized_i4"
     }
 
     unsafe fn from_bytes(bytes: &[u8]) -> Self {
@@ -154,7 +154,7 @@ mod tests {
         assert!(qi4.is_int());
         assert!(qi4.is_signed());
         assert!(!qi4.is_bool());
-        assert_eq!(qi4.type_name(), "qi4");
+        assert_eq!(qi4.type_name(), "quantized_i4");
     }
 
     #[test]
