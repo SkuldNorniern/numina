@@ -1,6 +1,6 @@
 //! Sorting and searching operations
 
-use crate::array::{NdArray, data_as_slice, data_as_slice_mut, ensure_host_accessible};
+use crate::array::{data_as_slice, data_as_slice_mut, ensure_host_accessible, NdArray};
 use crate::{DType, Shape};
 
 /// Sort array along specified axis
@@ -34,8 +34,56 @@ fn sort_axis<A: NdArray>(
     let mut result = array.zeros(array.shape().clone())?;
 
     match array.dtype() {
-        DType::F16 | DType::F32 | DType::F64 | DType::BF16 => {
-            // For floating point types, convert to f64 for sorting, then convert back
+        DType::F16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
+
+            if array.shape().ndim() == 1 {
+                let mut values: Vec<f64> =
+                    tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
+                if descending {
+                    values.sort_by(|a, b| b.partial_cmp(a).unwrap());
+                } else {
+                    values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                }
+                for i in 0..values.len() {
+                    result_data[i] = crate::Float16::from(values[i] as f32);
+                }
+            } else if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut column: Vec<f64> = (0..rows)
+                            .map(|i| f32::from(tensor_data[i * cols + j]) as f64)
+                            .collect();
+                        if descending {
+                            column.sort_by(|a, b| b.partial_cmp(a).unwrap());
+                        } else {
+                            column.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                        }
+                        for i in 0..rows {
+                            result_data[i * cols + j] = crate::Float16::from(column[i] as f32);
+                        }
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut row: Vec<f64> = (0..cols)
+                            .map(|j| f32::from(tensor_data[i * cols + j]) as f64)
+                            .collect();
+                        if descending {
+                            row.sort_by(|a, b| b.partial_cmp(a).unwrap());
+                        } else {
+                            row.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                        }
+                        for j in 0..cols {
+                            result_data[i * cols + j] = crate::Float16::from(row[j] as f32);
+                        }
+                    }
+                }
+            }
+        }
+        DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
             let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
 
@@ -78,6 +126,247 @@ fn sort_axis<A: NdArray>(
                         }
                         for j in 0..cols {
                             result_data[i * cols + j] = row[j] as f32;
+                        }
+                    }
+                }
+            }
+        }
+        DType::F64 => {
+            let tensor_data = unsafe { data_as_slice::<f64>(array) };
+            let result_data = unsafe { data_as_slice_mut::<f64>(&mut *result) };
+
+            if array.shape().ndim() == 1 {
+                let mut values: Vec<f64> = tensor_data.to_vec();
+                if descending {
+                    values.sort_by(|a, b| b.partial_cmp(a).unwrap());
+                } else {
+                    values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                }
+                for i in 0..values.len() {
+                    result_data[i] = values[i];
+                }
+            } else if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut column: Vec<f64> =
+                            (0..rows).map(|i| tensor_data[i * cols + j]).collect();
+                        if descending {
+                            column.sort_by(|a, b| b.partial_cmp(a).unwrap());
+                        } else {
+                            column.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                        }
+                        for i in 0..rows {
+                            result_data[i * cols + j] = column[i];
+                        }
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut row: Vec<f64> =
+                            (0..cols).map(|j| tensor_data[i * cols + j]).collect();
+                        if descending {
+                            row.sort_by(|a, b| b.partial_cmp(a).unwrap());
+                        } else {
+                            row.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                        }
+                        for j in 0..cols {
+                            result_data[i * cols + j] = row[j];
+                        }
+                    }
+                }
+            }
+        }
+        DType::BF16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+
+            if array.shape().ndim() == 1 {
+                let mut values: Vec<f64> = tensor_data.iter().map(|&x| x.to_f32() as f64).collect();
+                if descending {
+                    values.sort_by(|a, b| b.partial_cmp(a).unwrap());
+                } else {
+                    values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                }
+                for i in 0..values.len() {
+                    result_data[i] = crate::BFloat16::from_f32(values[i] as f32);
+                }
+            } else if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut column: Vec<f64> = (0..rows)
+                            .map(|i| tensor_data[i * cols + j].to_f32() as f64)
+                            .collect();
+                        if descending {
+                            column.sort_by(|a, b| b.partial_cmp(a).unwrap());
+                        } else {
+                            column.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                        }
+                        for i in 0..rows {
+                            result_data[i * cols + j] = crate::BFloat16::from_f32(column[i] as f32);
+                        }
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut row: Vec<f64> = (0..cols)
+                            .map(|j| tensor_data[i * cols + j].to_f32() as f64)
+                            .collect();
+                        if descending {
+                            row.sort_by(|a, b| b.partial_cmp(a).unwrap());
+                        } else {
+                            row.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                        }
+                        for j in 0..cols {
+                            result_data[i * cols + j] = crate::BFloat16::from_f32(row[j] as f32);
+                        }
+                    }
+                }
+            }
+        }
+        DType::BF8 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            if array.shape().ndim() == 1 {
+                let mut values: Vec<f64> =
+                    tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
+                if descending {
+                    values.sort_by(|a, b| b.partial_cmp(a).unwrap());
+                } else {
+                    values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                }
+                for i in 0..values.len() {
+                    result_data[i] = crate::BFloat8::from(values[i] as f32);
+                }
+            } else if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut column: Vec<f64> = (0..rows)
+                            .map(|i| f32::from(tensor_data[i * cols + j]) as f64)
+                            .collect();
+                        if descending {
+                            column.sort_by(|a, b| b.partial_cmp(a).unwrap());
+                        } else {
+                            column.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                        }
+                        for i in 0..rows {
+                            result_data[i * cols + j] = crate::BFloat8::from(column[i] as f32);
+                        }
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut row: Vec<f64> = (0..cols)
+                            .map(|j| f32::from(tensor_data[i * cols + j]) as f64)
+                            .collect();
+                        if descending {
+                            row.sort_by(|a, b| b.partial_cmp(a).unwrap());
+                        } else {
+                            row.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                        }
+                        for j in 0..cols {
+                            result_data[i * cols + j] = crate::BFloat8::from(row[j] as f32);
+                        }
+                    }
+                }
+            }
+        }
+        DType::F8E4M3FN => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            if array.shape().ndim() == 1 {
+                let mut values: Vec<f64> =
+                    tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
+                if descending {
+                    values.sort_by(|a, b| b.partial_cmp(a).unwrap());
+                } else {
+                    values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                }
+                for i in 0..values.len() {
+                    result_data[i] = crate::Float8E4M3Fn::from(values[i] as f32);
+                }
+            } else if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut column: Vec<f64> = (0..rows)
+                            .map(|i| f32::from(tensor_data[i * cols + j]) as f64)
+                            .collect();
+                        if descending {
+                            column.sort_by(|a, b| b.partial_cmp(a).unwrap());
+                        } else {
+                            column.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                        }
+                        for i in 0..rows {
+                            result_data[i * cols + j] = crate::Float8E4M3Fn::from(column[i] as f32);
+                        }
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut row: Vec<f64> = (0..cols)
+                            .map(|j| f32::from(tensor_data[i * cols + j]) as f64)
+                            .collect();
+                        if descending {
+                            row.sort_by(|a, b| b.partial_cmp(a).unwrap());
+                        } else {
+                            row.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                        }
+                        for j in 0..cols {
+                            result_data[i * cols + j] = crate::Float8E4M3Fn::from(row[j] as f32);
+                        }
+                    }
+                }
+            }
+        }
+        DType::F8E5M2 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            if array.shape().ndim() == 1 {
+                let mut values: Vec<f64> =
+                    tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
+                if descending {
+                    values.sort_by(|a, b| b.partial_cmp(a).unwrap());
+                } else {
+                    values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                }
+                for i in 0..values.len() {
+                    result_data[i] = crate::Float8E5M2::from(values[i] as f32);
+                }
+            } else if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut column: Vec<f64> = (0..rows)
+                            .map(|i| f32::from(tensor_data[i * cols + j]) as f64)
+                            .collect();
+                        if descending {
+                            column.sort_by(|a, b| b.partial_cmp(a).unwrap());
+                        } else {
+                            column.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                        }
+                        for i in 0..rows {
+                            result_data[i * cols + j] = crate::Float8E5M2::from(column[i] as f32);
+                        }
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut row: Vec<f64> = (0..cols)
+                            .map(|j| f32::from(tensor_data[i * cols + j]) as f64)
+                            .collect();
+                        if descending {
+                            row.sort_by(|a, b| b.partial_cmp(a).unwrap());
+                        } else {
+                            row.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                        }
+                        for j in 0..cols {
+                            result_data[i * cols + j] = crate::Float8E5M2::from(row[j] as f32);
                         }
                     }
                 }
@@ -198,6 +487,9 @@ fn sort_axis<A: NdArray>(
         DType::Bool => {
             return Err("Sort not supported for boolean type".to_string());
         }
+        DType::Complex32 | DType::Complex64 | DType::Complex128 => {
+            return Err(format!("Sort not implemented for {}", array.dtype()));
+        }
         DType::QI4 | DType::QU8 => {
             return Err(format!(
                 "Sort not implemented for quantized types {}",
@@ -214,7 +506,21 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
     let mut result = array.zeros(array.shape().clone())?;
 
     match array.dtype() {
-        DType::F16 | DType::F32 | DType::F64 | DType::BF16 => {
+        DType::F16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
+
+            let mut values: Vec<f64> = tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
+            if descending {
+                values.sort_by(|a, b| b.partial_cmp(a).unwrap());
+            } else {
+                values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            }
+            for i in 0..values.len() {
+                result_data[i] = crate::Float16::from(values[i] as f32);
+            }
+        }
+        DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
             let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
 
@@ -226,6 +532,74 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
             }
             for i in 0..values.len() {
                 result_data[i] = values[i] as f32;
+            }
+        }
+        DType::F64 => {
+            let tensor_data = unsafe { data_as_slice::<f64>(array) };
+            let result_data = unsafe { data_as_slice_mut::<f64>(&mut *result) };
+
+            let mut values: Vec<f64> = tensor_data.to_vec();
+            if descending {
+                values.sort_by(|a, b| b.partial_cmp(a).unwrap());
+            } else {
+                values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            }
+            result_data.copy_from_slice(&values);
+        }
+        DType::BF16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+
+            let mut values: Vec<f64> = tensor_data.iter().map(|&x| x.to_f32() as f64).collect();
+            if descending {
+                values.sort_by(|a, b| b.partial_cmp(a).unwrap());
+            } else {
+                values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            }
+            for i in 0..values.len() {
+                result_data[i] = crate::BFloat16::from_f32(values[i] as f32);
+            }
+        }
+        DType::BF8 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            let mut values: Vec<f64> = tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
+            if descending {
+                values.sort_by(|a, b| b.partial_cmp(a).unwrap());
+            } else {
+                values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            }
+            for i in 0..values.len() {
+                result_data[i] = crate::BFloat8::from(values[i] as f32);
+            }
+        }
+        DType::F8E4M3FN => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            let mut values: Vec<f64> = tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
+            if descending {
+                values.sort_by(|a, b| b.partial_cmp(a).unwrap());
+            } else {
+                values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            }
+            for i in 0..values.len() {
+                result_data[i] = crate::Float8E4M3Fn::from(values[i] as f32);
+            }
+        }
+        DType::F8E5M2 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            let mut values: Vec<f64> = tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
+            if descending {
+                values.sort_by(|a, b| b.partial_cmp(a).unwrap());
+            } else {
+                values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            }
+            for i in 0..values.len() {
+                result_data[i] = crate::Float8E5M2::from(values[i] as f32);
             }
         }
         DType::I8 => {
@@ -327,6 +701,9 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
         DType::Bool => {
             return Err("Sort not supported for boolean type".to_string());
         }
+        DType::Complex32 | DType::Complex64 | DType::Complex128 => {
+            return Err(format!("Sort not implemented for {}", array.dtype()));
+        }
         DType::QI4 | DType::QU8 => {
             return Err(format!(
                 "Sort not implemented for quantized types {}",
@@ -353,10 +730,81 @@ pub fn argsort<A: NdArray>(
     let mut indices: Vec<i32> = (0..array.len() as i32).collect();
 
     match array.dtype() {
-        DType::F16 | DType::F32 | DType::F64 | DType::BF16 => {
-            // Convert to f64 for consistent comparison
+        DType::F16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float16>(array) };
+            let values: Vec<f64> = tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
+
+            if descending {
+                indices
+                    .sort_by(|&a, &b| values[b as usize].partial_cmp(&values[a as usize]).unwrap());
+            } else {
+                indices
+                    .sort_by(|&a, &b| values[a as usize].partial_cmp(&values[b as usize]).unwrap());
+            }
+        }
+        DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
             let values: Vec<f64> = tensor_data.iter().map(|&x| x as f64).collect();
+
+            if descending {
+                indices
+                    .sort_by(|&a, &b| values[b as usize].partial_cmp(&values[a as usize]).unwrap());
+            } else {
+                indices
+                    .sort_by(|&a, &b| values[a as usize].partial_cmp(&values[b as usize]).unwrap());
+            }
+        }
+        DType::F64 => {
+            let tensor_data = unsafe { data_as_slice::<f64>(array) };
+            let values: Vec<f64> = tensor_data.to_vec();
+
+            if descending {
+                indices
+                    .sort_by(|&a, &b| values[b as usize].partial_cmp(&values[a as usize]).unwrap());
+            } else {
+                indices
+                    .sort_by(|&a, &b| values[a as usize].partial_cmp(&values[b as usize]).unwrap());
+            }
+        }
+        DType::BF16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat16>(array) };
+            let values: Vec<f64> = tensor_data.iter().map(|&x| x.to_f32() as f64).collect();
+
+            if descending {
+                indices
+                    .sort_by(|&a, &b| values[b as usize].partial_cmp(&values[a as usize]).unwrap());
+            } else {
+                indices
+                    .sort_by(|&a, &b| values[a as usize].partial_cmp(&values[b as usize]).unwrap());
+            }
+        }
+        DType::BF8 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let values: Vec<f64> = tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
+
+            if descending {
+                indices
+                    .sort_by(|&a, &b| values[b as usize].partial_cmp(&values[a as usize]).unwrap());
+            } else {
+                indices
+                    .sort_by(|&a, &b| values[a as usize].partial_cmp(&values[b as usize]).unwrap());
+            }
+        }
+        DType::F8E4M3FN => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let values: Vec<f64> = tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
+
+            if descending {
+                indices
+                    .sort_by(|&a, &b| values[b as usize].partial_cmp(&values[a as usize]).unwrap());
+            } else {
+                indices
+                    .sort_by(|&a, &b| values[a as usize].partial_cmp(&values[b as usize]).unwrap());
+            }
+        }
+        DType::F8E5M2 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let values: Vec<f64> = tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
 
             if descending {
                 indices
@@ -441,6 +889,9 @@ pub fn argsort<A: NdArray>(
         DType::Bool => {
             return Err("Argsort not supported for boolean type".to_string());
         }
+        DType::Complex32 | DType::Complex64 | DType::Complex128 => {
+            return Err(format!("Argsort not implemented for {}", array.dtype()));
+        }
         DType::QI4 | DType::QU8 => {
             return Err(format!(
                 "Argsort not implemented for quantized types {}",
@@ -467,11 +918,65 @@ where
     let mut indices = Vec::new();
 
     match array.dtype() {
-        DType::F16 | DType::F32 | DType::F64 | DType::BF16 => {
+        DType::F16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float16>(array) };
+
+            for (i, &val) in tensor_data.iter().enumerate() {
+                if condition(f32::from(val)) {
+                    indices.push(i);
+                }
+            }
+        }
+        DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
 
             for (i, &val) in tensor_data.iter().enumerate() {
                 if condition(val) {
+                    indices.push(i);
+                }
+            }
+        }
+        DType::F64 => {
+            let tensor_data = unsafe { data_as_slice::<f64>(array) };
+
+            for (i, &val) in tensor_data.iter().enumerate() {
+                if condition(val as f32) {
+                    indices.push(i);
+                }
+            }
+        }
+        DType::BF16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat16>(array) };
+
+            for (i, &val) in tensor_data.iter().enumerate() {
+                if condition(val.to_f32()) {
+                    indices.push(i);
+                }
+            }
+        }
+        DType::BF8 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat8>(array) };
+
+            for (i, &val) in tensor_data.iter().enumerate() {
+                if condition(f32::from(val)) {
+                    indices.push(i);
+                }
+            }
+        }
+        DType::F8E4M3FN => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+
+            for (i, &val) in tensor_data.iter().enumerate() {
+                if condition(f32::from(val)) {
+                    indices.push(i);
+                }
+            }
+        }
+        DType::F8E5M2 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+
+            for (i, &val) in tensor_data.iter().enumerate() {
+                if condition(f32::from(val)) {
                     indices.push(i);
                 }
             }
@@ -550,6 +1055,9 @@ where
         }
         DType::Bool => {
             return Err("Where not supported for boolean type".to_string());
+        }
+        DType::Complex32 | DType::Complex64 | DType::Complex128 => {
+            return Err(format!("Where not implemented for {}", array.dtype()));
         }
         DType::QI4 | DType::QU8 => {
             return Err(format!(

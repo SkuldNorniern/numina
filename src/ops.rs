@@ -1,7 +1,7 @@
 //! Element-wise array operations built on the `NdArray` abstraction
 
 use crate::array::{
-    NdArray, data_as_slice, data_as_slice_mut, ensure_binary_compat, ensure_host_accessible,
+    data_as_slice, data_as_slice_mut, ensure_binary_compat, ensure_host_accessible, NdArray,
 };
 use crate::{DType, Shape};
 
@@ -17,12 +17,13 @@ where
 
     match a.dtype() {
         DType::F16 => {
-            let lhs = unsafe { data_as_slice::<f32>(a) }; // F16 stored as f32
-            let rhs = unsafe { data_as_slice::<f32>(b) };
-            let dst = unsafe { data_as_slice_mut::<f32>(&mut *result) };
+            let lhs = unsafe { data_as_slice::<crate::Float16>(a) };
+            let rhs = unsafe { data_as_slice::<crate::Float16>(b) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
 
             for i in 0..a.len() {
-                dst[i] = lhs[i] + rhs[i];
+                let result_f32 = f32::from(lhs[i]) + f32::from(rhs[i]);
+                dst[i] = crate::Float16::from(result_f32);
             }
         }
         DType::F32 => {
@@ -52,6 +53,39 @@ where
                 let result_f32 = lhs[i].to_f32() + rhs[i].to_f32();
                 dst[i] = crate::BFloat16::from_f32(result_f32);
             }
+        }
+        DType::BF8 => {
+            let lhs = unsafe { data_as_slice::<crate::BFloat8>(a) };
+            let rhs = unsafe { data_as_slice::<crate::BFloat8>(b) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            for i in 0..a.len() {
+                let result_f32 = f32::from(lhs[i]) + f32::from(rhs[i]);
+                dst[i] = crate::BFloat8::from(result_f32);
+            }
+        }
+        DType::F8E4M3FN => {
+            let lhs = unsafe { data_as_slice::<crate::Float8E4M3Fn>(a) };
+            let rhs = unsafe { data_as_slice::<crate::Float8E4M3Fn>(b) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            for i in 0..a.len() {
+                let result_f32 = f32::from(lhs[i]) + f32::from(rhs[i]);
+                dst[i] = crate::Float8E4M3Fn::from(result_f32);
+            }
+        }
+        DType::F8E5M2 => {
+            let lhs = unsafe { data_as_slice::<crate::Float8E5M2>(a) };
+            let rhs = unsafe { data_as_slice::<crate::Float8E5M2>(b) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            for i in 0..a.len() {
+                let result_f32 = f32::from(lhs[i]) + f32::from(rhs[i]);
+                dst[i] = crate::Float8E5M2::from(result_f32);
+            }
+        }
+        DType::Complex32 | DType::Complex64 | DType::Complex128 => {
+            return Err(format!("Addition not implemented for {}", a.dtype()));
         }
         DType::I8 => {
             let lhs = unsafe { data_as_slice::<i8>(a) };
@@ -151,12 +185,13 @@ where
 
     match a.dtype() {
         DType::F16 => {
-            let lhs = unsafe { data_as_slice::<f32>(a) };
-            let rhs = unsafe { data_as_slice::<f32>(b) };
-            let dst = unsafe { data_as_slice_mut::<f32>(&mut *result) };
+            let lhs = unsafe { data_as_slice::<crate::Float16>(a) };
+            let rhs = unsafe { data_as_slice::<crate::Float16>(b) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
 
             for i in 0..a.len() {
-                dst[i] = lhs[i] * rhs[i];
+                let result_f32 = f32::from(lhs[i]) * f32::from(rhs[i]);
+                dst[i] = crate::Float16::from(result_f32);
             }
         }
         DType::F32 => {
@@ -186,6 +221,39 @@ where
                 let result_f32 = lhs[i].to_f32() * rhs[i].to_f32();
                 dst[i] = crate::BFloat16::from_f32(result_f32);
             }
+        }
+        DType::BF8 => {
+            let lhs = unsafe { data_as_slice::<crate::BFloat8>(a) };
+            let rhs = unsafe { data_as_slice::<crate::BFloat8>(b) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            for i in 0..a.len() {
+                let result_f32 = f32::from(lhs[i]) * f32::from(rhs[i]);
+                dst[i] = crate::BFloat8::from(result_f32);
+            }
+        }
+        DType::F8E4M3FN => {
+            let lhs = unsafe { data_as_slice::<crate::Float8E4M3Fn>(a) };
+            let rhs = unsafe { data_as_slice::<crate::Float8E4M3Fn>(b) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            for i in 0..a.len() {
+                let result_f32 = f32::from(lhs[i]) * f32::from(rhs[i]);
+                dst[i] = crate::Float8E4M3Fn::from(result_f32);
+            }
+        }
+        DType::F8E5M2 => {
+            let lhs = unsafe { data_as_slice::<crate::Float8E5M2>(a) };
+            let rhs = unsafe { data_as_slice::<crate::Float8E5M2>(b) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            for i in 0..a.len() {
+                let result_f32 = f32::from(lhs[i]) * f32::from(rhs[i]);
+                dst[i] = crate::Float8E5M2::from(result_f32);
+            }
+        }
+        DType::Complex32 | DType::Complex64 | DType::Complex128 => {
+            return Err(format!("Multiplication not implemented for {}", a.dtype()));
         }
         DType::I8 => {
             let lhs = unsafe { data_as_slice::<i8>(a) };
@@ -280,6 +348,15 @@ pub fn add_scalar<A: NdArray>(array: &A, scalar: f64) -> Result<Box<dyn NdArray>
     let mut result = array.zeros(array.shape().clone())?;
 
     match array.dtype() {
+        DType::F16 => {
+            let src = unsafe { data_as_slice::<crate::Float16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
+
+            for i in 0..array.len() {
+                let value = f32::from(src[i]) + scalar as f32;
+                dst[i] = crate::Float16::from(value);
+            }
+        }
         DType::F32 => {
             let src = unsafe { data_as_slice::<f32>(array) };
             let dst = unsafe { data_as_slice_mut::<f32>(&mut *result) };
@@ -294,6 +371,42 @@ pub fn add_scalar<A: NdArray>(array: &A, scalar: f64) -> Result<Box<dyn NdArray>
 
             for i in 0..array.len() {
                 dst[i] = src[i] + scalar;
+            }
+        }
+        DType::BF16 => {
+            let src = unsafe { data_as_slice::<crate::BFloat16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+
+            for i in 0..array.len() {
+                let value = src[i].to_f32() + scalar as f32;
+                dst[i] = crate::BFloat16::from_f32(value);
+            }
+        }
+        DType::BF8 => {
+            let src = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            for i in 0..array.len() {
+                let value = f32::from(src[i]) + scalar as f32;
+                dst[i] = crate::BFloat8::from(value);
+            }
+        }
+        DType::F8E4M3FN => {
+            let src = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            for i in 0..array.len() {
+                let value = f32::from(src[i]) + scalar as f32;
+                dst[i] = crate::Float8E4M3Fn::from(value);
+            }
+        }
+        DType::F8E5M2 => {
+            let src = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            for i in 0..array.len() {
+                let value = f32::from(src[i]) + scalar as f32;
+                dst[i] = crate::Float8E5M2::from(value);
             }
         }
         _ => {
@@ -315,11 +428,12 @@ pub fn exp<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
 
     match array.dtype() {
         DType::F16 => {
-            let src = unsafe { data_as_slice::<f32>(array) };
-            let dst = unsafe { data_as_slice_mut::<f32>(&mut *result) };
+            let src = unsafe { data_as_slice::<crate::Float16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
 
             for i in 0..array.len() {
-                dst[i] = src[i].exp();
+                let result_f32 = f32::from(src[i]).exp();
+                dst[i] = crate::Float16::from(result_f32);
             }
         }
         DType::F32 => {
@@ -347,6 +461,33 @@ pub fn exp<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
                 dst[i] = crate::BFloat16::from_f32(result_f32);
             }
         }
+        DType::BF8 => {
+            let src = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).exp();
+                dst[i] = crate::BFloat8::from(result_f32);
+            }
+        }
+        DType::F8E4M3FN => {
+            let src = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).exp();
+                dst[i] = crate::Float8E4M3Fn::from(result_f32);
+            }
+        }
+        DType::F8E5M2 => {
+            let src = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).exp();
+                dst[i] = crate::Float8E5M2::from(result_f32);
+            }
+        }
         _ => {
             return Err(format!(
                 "Exp only supported for floating point types, got {}",
@@ -365,6 +506,15 @@ pub fn log<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     let mut result = array.zeros(array.shape().clone())?;
 
     match array.dtype() {
+        DType::F16 => {
+            let src = unsafe { data_as_slice::<crate::Float16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).ln();
+                dst[i] = crate::Float16::from(result_f32);
+            }
+        }
         DType::F32 => {
             let src = unsafe { data_as_slice::<f32>(array) };
             let dst = unsafe { data_as_slice_mut::<f32>(&mut *result) };
@@ -381,6 +531,42 @@ pub fn log<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
                 dst[i] = src[i].ln();
             }
         }
+        DType::BF16 => {
+            let src = unsafe { data_as_slice::<crate::BFloat16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = src[i].to_f32().ln();
+                dst[i] = crate::BFloat16::from_f32(result_f32);
+            }
+        }
+        DType::BF8 => {
+            let src = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).ln();
+                dst[i] = crate::BFloat8::from(result_f32);
+            }
+        }
+        DType::F8E4M3FN => {
+            let src = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).ln();
+                dst[i] = crate::Float8E4M3Fn::from(result_f32);
+            }
+        }
+        DType::F8E5M2 => {
+            let src = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).ln();
+                dst[i] = crate::Float8E5M2::from(result_f32);
+            }
+        }
         _ => return Err(format!("Log not implemented for {}", array.dtype())),
     }
 
@@ -395,11 +581,12 @@ pub fn sqrt<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
 
     match array.dtype() {
         DType::F16 => {
-            let src = unsafe { data_as_slice::<f32>(array) };
-            let dst = unsafe { data_as_slice_mut::<f32>(&mut *result) };
+            let src = unsafe { data_as_slice::<crate::Float16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
 
             for i in 0..array.len() {
-                dst[i] = src[i].sqrt();
+                let result_f32 = f32::from(src[i]).sqrt();
+                dst[i] = crate::Float16::from(result_f32);
             }
         }
         DType::F32 => {
@@ -427,6 +614,33 @@ pub fn sqrt<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
                 dst[i] = crate::BFloat16::from_f32(result_f32);
             }
         }
+        DType::BF8 => {
+            let src = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).sqrt();
+                dst[i] = crate::BFloat8::from(result_f32);
+            }
+        }
+        DType::F8E4M3FN => {
+            let src = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).sqrt();
+                dst[i] = crate::Float8E4M3Fn::from(result_f32);
+            }
+        }
+        DType::F8E5M2 => {
+            let src = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).sqrt();
+                dst[i] = crate::Float8E5M2::from(result_f32);
+            }
+        }
         _ => {
             return Err(format!(
                 "Sqrt only supported for floating point types, got {}",
@@ -445,6 +659,15 @@ pub fn sin<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     let mut result = array.zeros(array.shape().clone())?;
 
     match array.dtype() {
+        DType::F16 => {
+            let src = unsafe { data_as_slice::<crate::Float16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).sin();
+                dst[i] = crate::Float16::from(result_f32);
+            }
+        }
         DType::F32 => {
             let src = unsafe { data_as_slice::<f32>(array) };
             let dst = unsafe { data_as_slice_mut::<f32>(&mut *result) };
@@ -470,6 +693,33 @@ pub fn sin<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
                 dst[i] = crate::BFloat16::from_f32(result_f32);
             }
         }
+        DType::BF8 => {
+            let src = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).sin();
+                dst[i] = crate::BFloat8::from(result_f32);
+            }
+        }
+        DType::F8E4M3FN => {
+            let src = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).sin();
+                dst[i] = crate::Float8E4M3Fn::from(result_f32);
+            }
+        }
+        DType::F8E5M2 => {
+            let src = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).sin();
+                dst[i] = crate::Float8E5M2::from(result_f32);
+            }
+        }
         _ => return Err(format!("Sin not implemented for {}", array.dtype())),
     }
 
@@ -483,6 +733,15 @@ pub fn cos<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     let mut result = array.zeros(array.shape().clone())?;
 
     match array.dtype() {
+        DType::F16 => {
+            let src = unsafe { data_as_slice::<crate::Float16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).cos();
+                dst[i] = crate::Float16::from(result_f32);
+            }
+        }
         DType::F32 => {
             let src = unsafe { data_as_slice::<f32>(array) };
             let dst = unsafe { data_as_slice_mut::<f32>(&mut *result) };
@@ -497,6 +756,42 @@ pub fn cos<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
 
             for i in 0..array.len() {
                 dst[i] = src[i].cos();
+            }
+        }
+        DType::BF16 => {
+            let src = unsafe { data_as_slice::<crate::BFloat16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = src[i].to_f32().cos();
+                dst[i] = crate::BFloat16::from_f32(result_f32);
+            }
+        }
+        DType::BF8 => {
+            let src = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).cos();
+                dst[i] = crate::BFloat8::from(result_f32);
+            }
+        }
+        DType::F8E4M3FN => {
+            let src = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).cos();
+                dst[i] = crate::Float8E4M3Fn::from(result_f32);
+            }
+        }
+        DType::F8E5M2 => {
+            let src = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).cos();
+                dst[i] = crate::Float8E5M2::from(result_f32);
             }
         }
         _ => return Err(format!("Cos not implemented for {}", array.dtype())),
@@ -512,6 +807,15 @@ pub fn tan<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     let mut result = array.zeros(array.shape().clone())?;
 
     match array.dtype() {
+        DType::F16 => {
+            let src = unsafe { data_as_slice::<crate::Float16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).tan();
+                dst[i] = crate::Float16::from(result_f32);
+            }
+        }
         DType::F32 => {
             let src = unsafe { data_as_slice::<f32>(array) };
             let dst = unsafe { data_as_slice_mut::<f32>(&mut *result) };
@@ -526,6 +830,42 @@ pub fn tan<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
 
             for i in 0..array.len() {
                 dst[i] = src[i].tan();
+            }
+        }
+        DType::BF16 => {
+            let src = unsafe { data_as_slice::<crate::BFloat16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = src[i].to_f32().tan();
+                dst[i] = crate::BFloat16::from_f32(result_f32);
+            }
+        }
+        DType::BF8 => {
+            let src = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).tan();
+                dst[i] = crate::BFloat8::from(result_f32);
+            }
+        }
+        DType::F8E4M3FN => {
+            let src = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).tan();
+                dst[i] = crate::Float8E4M3Fn::from(result_f32);
+            }
+        }
+        DType::F8E5M2 => {
+            let src = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).tan();
+                dst[i] = crate::Float8E5M2::from(result_f32);
             }
         }
         _ => return Err(format!("Tan not implemented for {}", array.dtype())),
@@ -541,6 +881,15 @@ pub fn asin<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     let mut result = array.zeros(array.shape().clone())?;
 
     match array.dtype() {
+        DType::F16 => {
+            let src = unsafe { data_as_slice::<crate::Float16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).asin();
+                dst[i] = crate::Float16::from(result_f32);
+            }
+        }
         DType::F32 => {
             let src = unsafe { data_as_slice::<f32>(array) };
             let dst = unsafe { data_as_slice_mut::<f32>(&mut *result) };
@@ -555,6 +904,42 @@ pub fn asin<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
 
             for i in 0..array.len() {
                 dst[i] = src[i].asin();
+            }
+        }
+        DType::BF16 => {
+            let src = unsafe { data_as_slice::<crate::BFloat16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = src[i].to_f32().asin();
+                dst[i] = crate::BFloat16::from_f32(result_f32);
+            }
+        }
+        DType::BF8 => {
+            let src = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).asin();
+                dst[i] = crate::BFloat8::from(result_f32);
+            }
+        }
+        DType::F8E4M3FN => {
+            let src = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).asin();
+                dst[i] = crate::Float8E4M3Fn::from(result_f32);
+            }
+        }
+        DType::F8E5M2 => {
+            let src = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).asin();
+                dst[i] = crate::Float8E5M2::from(result_f32);
             }
         }
         _ => return Err(format!("Asin not implemented for {}", array.dtype())),
@@ -570,6 +955,15 @@ pub fn acos<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     let mut result = array.zeros(array.shape().clone())?;
 
     match array.dtype() {
+        DType::F16 => {
+            let src = unsafe { data_as_slice::<crate::Float16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).acos();
+                dst[i] = crate::Float16::from(result_f32);
+            }
+        }
         DType::F32 => {
             let src = unsafe { data_as_slice::<f32>(array) };
             let dst = unsafe { data_as_slice_mut::<f32>(&mut *result) };
@@ -584,6 +978,42 @@ pub fn acos<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
 
             for i in 0..array.len() {
                 dst[i] = src[i].acos();
+            }
+        }
+        DType::BF16 => {
+            let src = unsafe { data_as_slice::<crate::BFloat16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = src[i].to_f32().acos();
+                dst[i] = crate::BFloat16::from_f32(result_f32);
+            }
+        }
+        DType::BF8 => {
+            let src = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).acos();
+                dst[i] = crate::BFloat8::from(result_f32);
+            }
+        }
+        DType::F8E4M3FN => {
+            let src = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).acos();
+                dst[i] = crate::Float8E4M3Fn::from(result_f32);
+            }
+        }
+        DType::F8E5M2 => {
+            let src = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).acos();
+                dst[i] = crate::Float8E5M2::from(result_f32);
             }
         }
         _ => return Err(format!("Acos not implemented for {}", array.dtype())),
@@ -599,6 +1029,15 @@ pub fn atan<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     let mut result = array.zeros(array.shape().clone())?;
 
     match array.dtype() {
+        DType::F16 => {
+            let src = unsafe { data_as_slice::<crate::Float16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).atan();
+                dst[i] = crate::Float16::from(result_f32);
+            }
+        }
         DType::F32 => {
             let src = unsafe { data_as_slice::<f32>(array) };
             let dst = unsafe { data_as_slice_mut::<f32>(&mut *result) };
@@ -615,6 +1054,42 @@ pub fn atan<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
                 dst[i] = src[i].atan();
             }
         }
+        DType::BF16 => {
+            let src = unsafe { data_as_slice::<crate::BFloat16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = src[i].to_f32().atan();
+                dst[i] = crate::BFloat16::from_f32(result_f32);
+            }
+        }
+        DType::BF8 => {
+            let src = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).atan();
+                dst[i] = crate::BFloat8::from(result_f32);
+            }
+        }
+        DType::F8E4M3FN => {
+            let src = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).atan();
+                dst[i] = crate::Float8E4M3Fn::from(result_f32);
+            }
+        }
+        DType::F8E5M2 => {
+            let src = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).atan();
+                dst[i] = crate::Float8E5M2::from(result_f32);
+            }
+        }
         _ => return Err(format!("Atan not implemented for {}", array.dtype())),
     }
 
@@ -628,6 +1103,15 @@ pub fn pow<A: NdArray>(array: &A, exponent: f64) -> Result<Box<dyn NdArray>, Str
     let mut result = array.zeros(array.shape().clone())?;
 
     match array.dtype() {
+        DType::F16 => {
+            let src = unsafe { data_as_slice::<crate::Float16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).powf(exponent as f32);
+                dst[i] = crate::Float16::from(result_f32);
+            }
+        }
         DType::F32 => {
             let src = unsafe { data_as_slice::<f32>(array) };
             let dst = unsafe { data_as_slice_mut::<f32>(&mut *result) };
@@ -644,6 +1128,42 @@ pub fn pow<A: NdArray>(array: &A, exponent: f64) -> Result<Box<dyn NdArray>, Str
                 dst[i] = src[i].powf(exponent);
             }
         }
+        DType::BF16 => {
+            let src = unsafe { data_as_slice::<crate::BFloat16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = src[i].to_f32().powf(exponent as f32);
+                dst[i] = crate::BFloat16::from_f32(result_f32);
+            }
+        }
+        DType::BF8 => {
+            let src = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).powf(exponent as f32);
+                dst[i] = crate::BFloat8::from(result_f32);
+            }
+        }
+        DType::F8E4M3FN => {
+            let src = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).powf(exponent as f32);
+                dst[i] = crate::Float8E4M3Fn::from(result_f32);
+            }
+        }
+        DType::F8E5M2 => {
+            let src = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).powf(exponent as f32);
+                dst[i] = crate::Float8E5M2::from(result_f32);
+            }
+        }
         _ => return Err(format!("Pow not implemented for {}", array.dtype())),
     }
 
@@ -658,11 +1178,12 @@ pub fn abs<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
 
     match array.dtype() {
         DType::F16 => {
-            let src = unsafe { data_as_slice::<f32>(array) };
-            let dst = unsafe { data_as_slice_mut::<f32>(&mut *result) };
+            let src = unsafe { data_as_slice::<crate::Float16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
 
             for i in 0..array.len() {
-                dst[i] = src[i].abs();
+                let result_f32 = f32::from(src[i]).abs();
+                dst[i] = crate::Float16::from(result_f32);
             }
         }
         DType::F32 => {
@@ -688,6 +1209,33 @@ pub fn abs<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
             for i in 0..array.len() {
                 let result_f32 = src[i].to_f32().abs();
                 dst[i] = crate::BFloat16::from_f32(result_f32);
+            }
+        }
+        DType::BF8 => {
+            let src = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).abs();
+                dst[i] = crate::BFloat8::from(result_f32);
+            }
+        }
+        DType::F8E4M3FN => {
+            let src = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).abs();
+                dst[i] = crate::Float8E4M3Fn::from(result_f32);
+            }
+        }
+        DType::F8E5M2 => {
+            let src = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            for i in 0..array.len() {
+                let result_f32 = f32::from(src[i]).abs();
+                dst[i] = crate::Float8E5M2::from(result_f32);
             }
         }
         DType::I8 => {
@@ -738,6 +1286,9 @@ pub fn abs<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
                 array.dtype()
             ));
         }
+        DType::Complex32 | DType::Complex64 | DType::Complex128 => {
+            return Err(format!("Abs not implemented for {}", array.dtype()));
+        }
     }
 
     Ok(result)
@@ -751,17 +1302,19 @@ pub fn sign<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
 
     match array.dtype() {
         DType::F16 => {
-            let src = unsafe { data_as_slice::<f32>(array) }; // F16 stored as f32
-            let dst = unsafe { data_as_slice_mut::<f32>(&mut *result) };
+            let src = unsafe { data_as_slice::<crate::Float16>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
 
             for i in 0..array.len() {
-                dst[i] = if src[i] > 0.0 {
+                let value = f32::from(src[i]);
+                let sign = if value > 0.0 {
                     1.0
-                } else if src[i] < 0.0 {
+                } else if value < 0.0 {
                     -1.0
                 } else {
                     0.0
                 };
+                dst[i] = crate::Float16::from(sign);
             }
         }
         DType::F32 => {
@@ -806,6 +1359,54 @@ pub fn sign<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
                     0.0
                 };
                 dst[i] = crate::BFloat16::from_f32(sign_val);
+            }
+        }
+        DType::BF8 => {
+            let src = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            for i in 0..array.len() {
+                let val = f32::from(src[i]);
+                let sign_val = if val > 0.0 {
+                    1.0
+                } else if val < 0.0 {
+                    -1.0
+                } else {
+                    0.0
+                };
+                dst[i] = crate::BFloat8::from(sign_val);
+            }
+        }
+        DType::F8E4M3FN => {
+            let src = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            for i in 0..array.len() {
+                let val = f32::from(src[i]);
+                let sign_val = if val > 0.0 {
+                    1.0
+                } else if val < 0.0 {
+                    -1.0
+                } else {
+                    0.0
+                };
+                dst[i] = crate::Float8E4M3Fn::from(sign_val);
+            }
+        }
+        DType::F8E5M2 => {
+            let src = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            for i in 0..array.len() {
+                let val = f32::from(src[i]);
+                let sign_val = if val > 0.0 {
+                    1.0
+                } else if val < 0.0 {
+                    -1.0
+                } else {
+                    0.0
+                };
+                dst[i] = crate::Float8E5M2::from(sign_val);
             }
         }
         DType::I8 => {
@@ -856,6 +1457,9 @@ pub fn sign<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
                 array.dtype()
             ));
         }
+        DType::Complex32 | DType::Complex64 | DType::Complex128 => {
+            return Err(format!("Sign not implemented for {}", array.dtype()));
+        }
     }
 
     Ok(result)
@@ -893,6 +1497,23 @@ where
     let mut result = a.zeros(result_shape)?;
 
     match a.dtype() {
+        DType::F16 => {
+            let lhs = unsafe { data_as_slice::<crate::Float16>(a) };
+            let rhs = unsafe { data_as_slice::<crate::Float16>(b) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
+
+            for i in 0..m {
+                for j in 0..n {
+                    let mut sum = 0.0f32;
+                    for l in 0..k {
+                        let left = f32::from(lhs[i * k + l]);
+                        let right = f32::from(rhs[l * n + j]);
+                        sum += left * right;
+                    }
+                    dst[i * n + j] = crate::Float16::from(sum);
+                }
+            }
+        }
         DType::F32 => {
             let lhs = unsafe { data_as_slice::<f32>(a) };
             let rhs = unsafe { data_as_slice::<f32>(b) };
@@ -923,6 +1544,72 @@ where
                 }
             }
         }
+        DType::BF16 => {
+            let lhs = unsafe { data_as_slice::<crate::BFloat16>(a) };
+            let rhs = unsafe { data_as_slice::<crate::BFloat16>(b) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+
+            for i in 0..m {
+                for j in 0..n {
+                    let mut sum = 0.0f32;
+                    for l in 0..k {
+                        sum += lhs[i * k + l].to_f32() * rhs[l * n + j].to_f32();
+                    }
+                    dst[i * n + j] = crate::BFloat16::from_f32(sum);
+                }
+            }
+        }
+        DType::BF8 => {
+            let lhs = unsafe { data_as_slice::<crate::BFloat8>(a) };
+            let rhs = unsafe { data_as_slice::<crate::BFloat8>(b) };
+            let dst = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            for i in 0..m {
+                for j in 0..n {
+                    let mut sum = 0.0f32;
+                    for l in 0..k {
+                        let left = f32::from(lhs[i * k + l]);
+                        let right = f32::from(rhs[l * n + j]);
+                        sum += left * right;
+                    }
+                    dst[i * n + j] = crate::BFloat8::from(sum);
+                }
+            }
+        }
+        DType::F8E4M3FN => {
+            let lhs = unsafe { data_as_slice::<crate::Float8E4M3Fn>(a) };
+            let rhs = unsafe { data_as_slice::<crate::Float8E4M3Fn>(b) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            for i in 0..m {
+                for j in 0..n {
+                    let mut sum = 0.0f32;
+                    for l in 0..k {
+                        let left = f32::from(lhs[i * k + l]);
+                        let right = f32::from(rhs[l * n + j]);
+                        sum += left * right;
+                    }
+                    dst[i * n + j] = crate::Float8E4M3Fn::from(sum);
+                }
+            }
+        }
+        DType::F8E5M2 => {
+            let lhs = unsafe { data_as_slice::<crate::Float8E5M2>(a) };
+            let rhs = unsafe { data_as_slice::<crate::Float8E5M2>(b) };
+            let dst = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            for i in 0..m {
+                for j in 0..n {
+                    let mut sum = 0.0f32;
+                    for l in 0..k {
+                        let left = f32::from(lhs[i * k + l]);
+                        let right = f32::from(rhs[l * n + j]);
+                        sum += left * right;
+                    }
+                    dst[i * n + j] = crate::Float8E5M2::from(sum);
+                }
+            }
+        }
         _ => return Err(format!("Matmul not implemented for {}", a.dtype())),
     }
 
@@ -932,8 +1619,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Shape;
     use crate::array::Array;
+    use crate::Shape;
 
     #[test]
     fn test_add_array() {
@@ -981,7 +1668,8 @@ mod tests {
         let result_data = unsafe { data_as_slice::<f32>(&*result) };
         assert!((result_data[0] - 1.0).abs() < 0.001); // exp(0) ≈ 1
         assert!((result_data[1] - std::f32::consts::E).abs() < 0.001); // exp(1) ≈ e
-        assert!((result_data[2] - (std::f32::consts::E * std::f32::consts::E)).abs() < 0.001); // exp(2) ≈ e²
+        assert!((result_data[2] - (std::f32::consts::E * std::f32::consts::E)).abs() < 0.001);
+        // exp(2) ≈ e²
     }
 
     #[test]

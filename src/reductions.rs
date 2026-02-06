@@ -1,6 +1,6 @@
 //! Reduction operations (sum, mean, max, min, etc.)
 
-use crate::array::{NdArray, data_as_slice, data_as_slice_mut, ensure_host_accessible};
+use crate::array::{data_as_slice, data_as_slice_mut, ensure_host_accessible, NdArray};
 use crate::{DType, Shape};
 
 /// Sum reduction along specified axis (or all axes if None)
@@ -36,16 +36,42 @@ fn sum_axis<A: NdArray>(array: &A, axis: usize) -> Result<Box<dyn NdArray>, Stri
 
     // Simple implementation - in practice would be much more optimized
     match array.dtype() {
-        DType::F32 => {
-            let tensor_data = unsafe { data_as_slice::<f32>(array) };
-            let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
+        DType::F16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
 
-            // This is a simplified implementation for 2D tensors
             if array.shape().ndim() == 2 {
                 let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
 
                 if axis == 0 {
-                    // Sum along rows (output: [cols])
+                    for j in 0..cols {
+                        let mut sum = 0.0f32;
+                        for i in 0..rows {
+                            sum += f32::from(tensor_data[i * cols + j]);
+                        }
+                        result_data[j] = crate::Float16::from(sum);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut sum = 0.0f32;
+                        for j in 0..cols {
+                            sum += f32::from(tensor_data[i * cols + j]);
+                        }
+                        result_data[i] = crate::Float16::from(sum);
+                    }
+                }
+            } else {
+                return Err("Multi-dimensional sum_axis not implemented".to_string());
+            }
+        }
+        DType::F32 => {
+            let tensor_data = unsafe { data_as_slice::<f32>(array) };
+            let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
                     for j in 0..cols {
                         let mut sum = 0.0f32;
                         for i in 0..rows {
@@ -54,7 +80,6 @@ fn sum_axis<A: NdArray>(array: &A, axis: usize) -> Result<Box<dyn NdArray>, Stri
                         result_data[j] = sum;
                     }
                 } else if axis == 1 {
-                    // Sum along columns (output: [rows])
                     for i in 0..rows {
                         let mut sum = 0.0f32;
                         for j in 0..cols {
@@ -96,6 +121,118 @@ fn sum_axis<A: NdArray>(array: &A, axis: usize) -> Result<Box<dyn NdArray>, Stri
                 return Err("Multi-dimensional sum_axis not implemented".to_string());
             }
         }
+        DType::BF16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut sum = 0.0f32;
+                        for i in 0..rows {
+                            sum += tensor_data[i * cols + j].to_f32();
+                        }
+                        result_data[j] = crate::BFloat16::from_f32(sum);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut sum = 0.0f32;
+                        for j in 0..cols {
+                            sum += tensor_data[i * cols + j].to_f32();
+                        }
+                        result_data[i] = crate::BFloat16::from_f32(sum);
+                    }
+                }
+            } else {
+                return Err("Multi-dimensional sum_axis not implemented".to_string());
+            }
+        }
+        DType::BF8 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut sum = 0.0f32;
+                        for i in 0..rows {
+                            sum += f32::from(tensor_data[i * cols + j]);
+                        }
+                        result_data[j] = crate::BFloat8::from(sum);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut sum = 0.0f32;
+                        for j in 0..cols {
+                            sum += f32::from(tensor_data[i * cols + j]);
+                        }
+                        result_data[i] = crate::BFloat8::from(sum);
+                    }
+                }
+            } else {
+                return Err("Multi-dimensional sum_axis not implemented".to_string());
+            }
+        }
+        DType::F8E4M3FN => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut sum = 0.0f32;
+                        for i in 0..rows {
+                            sum += f32::from(tensor_data[i * cols + j]);
+                        }
+                        result_data[j] = crate::Float8E4M3Fn::from(sum);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut sum = 0.0f32;
+                        for j in 0..cols {
+                            sum += f32::from(tensor_data[i * cols + j]);
+                        }
+                        result_data[i] = crate::Float8E4M3Fn::from(sum);
+                    }
+                }
+            } else {
+                return Err("Multi-dimensional sum_axis not implemented".to_string());
+            }
+        }
+        DType::F8E5M2 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut sum = 0.0f32;
+                        for i in 0..rows {
+                            sum += f32::from(tensor_data[i * cols + j]);
+                        }
+                        result_data[j] = crate::Float8E5M2::from(sum);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut sum = 0.0f32;
+                        for j in 0..cols {
+                            sum += f32::from(tensor_data[i * cols + j]);
+                        }
+                        result_data[i] = crate::Float8E5M2::from(sum);
+                    }
+                }
+            } else {
+                return Err("Multi-dimensional sum_axis not implemented".to_string());
+            }
+        }
         _ => return Err(format!("Sum not implemented for {}", array.dtype())),
     }
 
@@ -108,14 +245,14 @@ fn sum_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
 
     match array.dtype() {
         DType::F16 => {
-            let tensor_data = unsafe { data_as_slice::<f32>(array) };
-            let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
+            let tensor_data = unsafe { data_as_slice::<crate::Float16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
 
             let mut sum = 0.0f32;
             for &val in tensor_data {
-                sum += val;
+                sum += f32::from(val);
             }
-            result_data[0] = sum;
+            result_data[0] = crate::Float16::from(sum);
         }
         DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
@@ -146,6 +283,36 @@ fn sum_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
                 sum += val.to_f32();
             }
             result_data[0] = crate::BFloat16::from_f32(sum);
+        }
+        DType::BF8 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            let mut sum = 0.0f32;
+            for &val in tensor_data {
+                sum += f32::from(val);
+            }
+            result_data[0] = crate::BFloat8::from(sum);
+        }
+        DType::F8E4M3FN => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            let mut sum = 0.0f32;
+            for &val in tensor_data {
+                sum += f32::from(val);
+            }
+            result_data[0] = crate::Float8E4M3Fn::from(sum);
+        }
+        DType::F8E5M2 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            let mut sum = 0.0f32;
+            for &val in tensor_data {
+                sum += f32::from(val);
+            }
+            result_data[0] = crate::Float8E5M2::from(sum);
         }
         DType::I8 => {
             let tensor_data = unsafe { data_as_slice::<i8>(array) };
@@ -230,6 +397,9 @@ fn sum_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
         DType::Bool => {
             return Err("Sum not supported for boolean type".to_string());
         }
+        DType::Complex32 | DType::Complex64 | DType::Complex128 => {
+            return Err(format!("Sum not implemented for {}", array.dtype()));
+        }
         DType::QI4 | DType::QU8 => {
             return Err(format!(
                 "Sum not implemented for quantized types {}",
@@ -255,10 +425,11 @@ pub fn mean<A: NdArray>(array: &A, axis: Option<usize>) -> Result<Box<dyn NdArra
 
     match array.dtype() {
         DType::F16 => {
-            let sum_data = unsafe { data_as_slice::<f32>(&*sum_result) };
-            let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
+            let sum_data = unsafe { data_as_slice::<crate::Float16>(&*sum_result) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
             for i in 0..sum_data.len() {
-                result_data[i] = sum_data[i] / count as f32;
+                let value = f32::from(sum_data[i]) / count as f32;
+                result_data[i] = crate::Float16::from(value);
             }
         }
         DType::F32 => {
@@ -281,6 +452,30 @@ pub fn mean<A: NdArray>(array: &A, axis: Option<usize>) -> Result<Box<dyn NdArra
             for i in 0..sum_data.len() {
                 let result_f32 = sum_data[i].to_f32() / count as f32;
                 result_data[i] = crate::BFloat16::from_f32(result_f32);
+            }
+        }
+        DType::BF8 => {
+            let sum_data = unsafe { data_as_slice::<crate::BFloat8>(&*sum_result) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+            for i in 0..sum_data.len() {
+                let result_f32 = f32::from(sum_data[i]) / count as f32;
+                result_data[i] = crate::BFloat8::from(result_f32);
+            }
+        }
+        DType::F8E4M3FN => {
+            let sum_data = unsafe { data_as_slice::<crate::Float8E4M3Fn>(&*sum_result) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+            for i in 0..sum_data.len() {
+                let result_f32 = f32::from(sum_data[i]) / count as f32;
+                result_data[i] = crate::Float8E4M3Fn::from(result_f32);
+            }
+        }
+        DType::F8E5M2 => {
+            let sum_data = unsafe { data_as_slice::<crate::Float8E5M2>(&*sum_result) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+            for i in 0..sum_data.len() {
+                let result_f32 = f32::from(sum_data[i]) / count as f32;
+                result_data[i] = crate::Float8E5M2::from(result_f32);
             }
         }
         DType::I8 => {
@@ -342,6 +537,9 @@ pub fn mean<A: NdArray>(array: &A, axis: Option<usize>) -> Result<Box<dyn NdArra
         DType::Bool => {
             return Err("Mean not supported for boolean type".to_string());
         }
+        DType::Complex32 | DType::Complex64 | DType::Complex128 => {
+            return Err(format!("Mean not implemented for {}", array.dtype()));
+        }
         DType::QI4 | DType::QU8 => {
             return Err(format!(
                 "Mean not implemented for quantized types {}",
@@ -385,6 +583,240 @@ fn max_axis<A: NdArray>(array: &A, axis: usize) -> Result<Box<dyn NdArray>, Stri
     let mut result = array.zeros(output_shape)?;
 
     match array.dtype() {
+        DType::F16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut max_val = f32::NEG_INFINITY;
+                        for i in 0..rows {
+                            max_val = max_val.max(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[j] = crate::Float16::from(max_val);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut max_val = f32::NEG_INFINITY;
+                        for j in 0..cols {
+                            max_val = max_val.max(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[i] = crate::Float16::from(max_val);
+                    }
+                }
+            }
+        }
+        DType::F8E4M3FN => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut prod = 1.0f32;
+                        for i in 0..rows {
+                            prod *= f32::from(tensor_data[i * cols + j]);
+                        }
+                        result_data[j] = crate::Float8E4M3Fn::from(prod);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut prod = 1.0f32;
+                        for j in 0..cols {
+                            prod *= f32::from(tensor_data[i * cols + j]);
+                        }
+                        result_data[i] = crate::Float8E4M3Fn::from(prod);
+                    }
+                }
+            }
+        }
+        DType::F8E5M2 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut prod = 1.0f32;
+                        for i in 0..rows {
+                            prod *= f32::from(tensor_data[i * cols + j]);
+                        }
+                        result_data[j] = crate::Float8E5M2::from(prod);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut prod = 1.0f32;
+                        for j in 0..cols {
+                            prod *= f32::from(tensor_data[i * cols + j]);
+                        }
+                        result_data[i] = crate::Float8E5M2::from(prod);
+                    }
+                }
+            }
+        }
+        DType::F8E4M3FN => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut min_val = f32::INFINITY;
+                        for i in 0..rows {
+                            min_val = min_val.min(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[j] = crate::Float8E4M3Fn::from(min_val);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut min_val = f32::INFINITY;
+                        for j in 0..cols {
+                            min_val = min_val.min(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[i] = crate::Float8E4M3Fn::from(min_val);
+                    }
+                }
+            }
+        }
+        DType::F8E5M2 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut min_val = f32::INFINITY;
+                        for i in 0..rows {
+                            min_val = min_val.min(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[j] = crate::Float8E5M2::from(min_val);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut min_val = f32::INFINITY;
+                        for j in 0..cols {
+                            min_val = min_val.min(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[i] = crate::Float8E5M2::from(min_val);
+                    }
+                }
+            }
+        }
+        DType::F8E4M3FN => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut max_val = f32::NEG_INFINITY;
+                        for i in 0..rows {
+                            max_val = max_val.max(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[j] = crate::Float8E4M3Fn::from(max_val);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut max_val = f32::NEG_INFINITY;
+                        for j in 0..cols {
+                            max_val = max_val.max(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[i] = crate::Float8E4M3Fn::from(max_val);
+                    }
+                }
+            }
+        }
+        DType::F8E5M2 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut max_val = f32::NEG_INFINITY;
+                        for i in 0..rows {
+                            max_val = max_val.max(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[j] = crate::Float8E5M2::from(max_val);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut max_val = f32::NEG_INFINITY;
+                        for j in 0..cols {
+                            max_val = max_val.max(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[i] = crate::Float8E5M2::from(max_val);
+                    }
+                }
+            }
+        }
+        DType::F8E4M3FN => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut max_val = f32::NEG_INFINITY;
+                        for i in 0..rows {
+                            max_val = max_val.max(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[j] = crate::Float8E4M3Fn::from(max_val);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut max_val = f32::NEG_INFINITY;
+                        for j in 0..cols {
+                            max_val = max_val.max(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[i] = crate::Float8E4M3Fn::from(max_val);
+                    }
+                }
+            }
+        }
+        DType::F8E5M2 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut max_val = f32::NEG_INFINITY;
+                        for i in 0..rows {
+                            max_val = max_val.max(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[j] = crate::Float8E5M2::from(max_val);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut max_val = f32::NEG_INFINITY;
+                        for j in 0..cols {
+                            max_val = max_val.max(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[i] = crate::Float8E5M2::from(max_val);
+                    }
+                }
+            }
+        }
         DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
             let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
@@ -413,6 +845,84 @@ fn max_axis<A: NdArray>(array: &A, axis: usize) -> Result<Box<dyn NdArray>, Stri
                 }
             }
         }
+        DType::F64 => {
+            let tensor_data = unsafe { data_as_slice::<f64>(array) };
+            let result_data = unsafe { data_as_slice_mut::<f64>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut max_val = f64::NEG_INFINITY;
+                        for i in 0..rows {
+                            max_val = max_val.max(tensor_data[i * cols + j]);
+                        }
+                        result_data[j] = max_val;
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut max_val = f64::NEG_INFINITY;
+                        for j in 0..cols {
+                            max_val = max_val.max(tensor_data[i * cols + j]);
+                        }
+                        result_data[i] = max_val;
+                    }
+                }
+            }
+        }
+        DType::BF16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut max_val = f32::NEG_INFINITY;
+                        for i in 0..rows {
+                            max_val = max_val.max(tensor_data[i * cols + j].to_f32());
+                        }
+                        result_data[j] = crate::BFloat16::from_f32(max_val);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut max_val = f32::NEG_INFINITY;
+                        for j in 0..cols {
+                            max_val = max_val.max(tensor_data[i * cols + j].to_f32());
+                        }
+                        result_data[i] = crate::BFloat16::from_f32(max_val);
+                    }
+                }
+            }
+        }
+        DType::BF8 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut max_val = f32::NEG_INFINITY;
+                        for i in 0..rows {
+                            max_val = max_val.max(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[j] = crate::BFloat8::from(max_val);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut max_val = f32::NEG_INFINITY;
+                        for j in 0..cols {
+                            max_val = max_val.max(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[i] = crate::BFloat8::from(max_val);
+                    }
+                }
+            }
+        }
         _ => return Err(format!("Max not implemented for {}", array.dtype())),
     }
 
@@ -424,6 +934,16 @@ fn max_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     let mut result = array.zeros(Shape::from([1]))?;
 
     match array.dtype() {
+        DType::F16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
+
+            let mut max_val = f32::NEG_INFINITY;
+            for &val in tensor_data {
+                max_val = max_val.max(f32::from(val));
+            }
+            result_data[0] = crate::Float16::from(max_val);
+        }
         DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
             let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
@@ -443,6 +963,46 @@ fn max_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
                 max_val = max_val.max(val);
             }
             result_data[0] = max_val;
+        }
+        DType::BF16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+
+            let mut max_val = f32::NEG_INFINITY;
+            for &val in tensor_data {
+                max_val = max_val.max(val.to_f32());
+            }
+            result_data[0] = crate::BFloat16::from_f32(max_val);
+        }
+        DType::BF8 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            let mut max_val = f32::NEG_INFINITY;
+            for &val in tensor_data {
+                max_val = max_val.max(f32::from(val));
+            }
+            result_data[0] = crate::BFloat8::from(max_val);
+        }
+        DType::F8E4M3FN => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            let mut max_val = f32::NEG_INFINITY;
+            for &val in tensor_data {
+                max_val = max_val.max(f32::from(val));
+            }
+            result_data[0] = crate::Float8E4M3Fn::from(max_val);
+        }
+        DType::F8E5M2 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            let mut max_val = f32::NEG_INFINITY;
+            for &val in tensor_data {
+                max_val = max_val.max(f32::from(val));
+            }
+            result_data[0] = crate::Float8E5M2::from(max_val);
         }
         _ => return Err(format!("Max not implemented for {}", array.dtype())),
     }
@@ -481,6 +1041,32 @@ fn min_axis<A: NdArray>(array: &A, axis: usize) -> Result<Box<dyn NdArray>, Stri
     let mut result = array.zeros(output_shape)?;
 
     match array.dtype() {
+        DType::F16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut min_val = f32::INFINITY;
+                        for i in 0..rows {
+                            min_val = min_val.min(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[j] = crate::Float16::from(min_val);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut min_val = f32::INFINITY;
+                        for j in 0..cols {
+                            min_val = min_val.min(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[i] = crate::Float16::from(min_val);
+                    }
+                }
+            }
+        }
         DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
             let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
@@ -507,6 +1093,84 @@ fn min_axis<A: NdArray>(array: &A, axis: usize) -> Result<Box<dyn NdArray>, Stri
                 }
             }
         }
+        DType::F64 => {
+            let tensor_data = unsafe { data_as_slice::<f64>(array) };
+            let result_data = unsafe { data_as_slice_mut::<f64>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut min_val = f64::INFINITY;
+                        for i in 0..rows {
+                            min_val = min_val.min(tensor_data[i * cols + j]);
+                        }
+                        result_data[j] = min_val;
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut min_val = f64::INFINITY;
+                        for j in 0..cols {
+                            min_val = min_val.min(tensor_data[i * cols + j]);
+                        }
+                        result_data[i] = min_val;
+                    }
+                }
+            }
+        }
+        DType::BF16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut min_val = f32::INFINITY;
+                        for i in 0..rows {
+                            min_val = min_val.min(tensor_data[i * cols + j].to_f32());
+                        }
+                        result_data[j] = crate::BFloat16::from_f32(min_val);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut min_val = f32::INFINITY;
+                        for j in 0..cols {
+                            min_val = min_val.min(tensor_data[i * cols + j].to_f32());
+                        }
+                        result_data[i] = crate::BFloat16::from_f32(min_val);
+                    }
+                }
+            }
+        }
+        DType::BF8 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut min_val = f32::INFINITY;
+                        for i in 0..rows {
+                            min_val = min_val.min(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[j] = crate::BFloat8::from(min_val);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut min_val = f32::INFINITY;
+                        for j in 0..cols {
+                            min_val = min_val.min(f32::from(tensor_data[i * cols + j]));
+                        }
+                        result_data[i] = crate::BFloat8::from(min_val);
+                    }
+                }
+            }
+        }
         _ => return Err(format!("Min not implemented for {}", array.dtype())),
     }
 
@@ -518,6 +1182,16 @@ fn min_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     let mut result = array.zeros(Shape::from([1]))?;
 
     match array.dtype() {
+        DType::F16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
+
+            let mut min_val = f32::INFINITY;
+            for &val in tensor_data {
+                min_val = min_val.min(f32::from(val));
+            }
+            result_data[0] = crate::Float16::from(min_val);
+        }
         DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
             let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
@@ -537,6 +1211,46 @@ fn min_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
                 min_val = min_val.min(val);
             }
             result_data[0] = min_val;
+        }
+        DType::BF16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+
+            let mut min_val = f32::INFINITY;
+            for &val in tensor_data {
+                min_val = min_val.min(val.to_f32());
+            }
+            result_data[0] = crate::BFloat16::from_f32(min_val);
+        }
+        DType::BF8 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            let mut min_val = f32::INFINITY;
+            for &val in tensor_data {
+                min_val = min_val.min(f32::from(val));
+            }
+            result_data[0] = crate::BFloat8::from(min_val);
+        }
+        DType::F8E4M3FN => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            let mut min_val = f32::INFINITY;
+            for &val in tensor_data {
+                min_val = min_val.min(f32::from(val));
+            }
+            result_data[0] = crate::Float8E4M3Fn::from(min_val);
+        }
+        DType::F8E5M2 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            let mut min_val = f32::INFINITY;
+            for &val in tensor_data {
+                min_val = min_val.min(f32::from(val));
+            }
+            result_data[0] = crate::Float8E5M2::from(min_val);
         }
         _ => return Err(format!("Min not implemented for {}", array.dtype())),
     }
@@ -575,6 +1289,32 @@ fn prod_axis<A: NdArray>(array: &A, axis: usize) -> Result<Box<dyn NdArray>, Str
     let mut result = array.ones(output_shape)?;
 
     match array.dtype() {
+        DType::F16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut prod = 1.0f32;
+                        for i in 0..rows {
+                            prod *= f32::from(tensor_data[i * cols + j]);
+                        }
+                        result_data[j] = crate::Float16::from(prod);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut prod = 1.0f32;
+                        for j in 0..cols {
+                            prod *= f32::from(tensor_data[i * cols + j]);
+                        }
+                        result_data[i] = crate::Float16::from(prod);
+                    }
+                }
+            }
+        }
         DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
             let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
@@ -601,6 +1341,84 @@ fn prod_axis<A: NdArray>(array: &A, axis: usize) -> Result<Box<dyn NdArray>, Str
                 }
             }
         }
+        DType::F64 => {
+            let tensor_data = unsafe { data_as_slice::<f64>(array) };
+            let result_data = unsafe { data_as_slice_mut::<f64>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut prod = 1.0f64;
+                        for i in 0..rows {
+                            prod *= tensor_data[i * cols + j];
+                        }
+                        result_data[j] = prod;
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut prod = 1.0f64;
+                        for j in 0..cols {
+                            prod *= tensor_data[i * cols + j];
+                        }
+                        result_data[i] = prod;
+                    }
+                }
+            }
+        }
+        DType::BF16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut prod = 1.0f32;
+                        for i in 0..rows {
+                            prod *= tensor_data[i * cols + j].to_f32();
+                        }
+                        result_data[j] = crate::BFloat16::from_f32(prod);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut prod = 1.0f32;
+                        for j in 0..cols {
+                            prod *= tensor_data[i * cols + j].to_f32();
+                        }
+                        result_data[i] = crate::BFloat16::from_f32(prod);
+                    }
+                }
+            }
+        }
+        DType::BF8 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            if array.shape().ndim() == 2 {
+                let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
+
+                if axis == 0 {
+                    for j in 0..cols {
+                        let mut prod = 1.0f32;
+                        for i in 0..rows {
+                            prod *= f32::from(tensor_data[i * cols + j]);
+                        }
+                        result_data[j] = crate::BFloat8::from(prod);
+                    }
+                } else if axis == 1 {
+                    for i in 0..rows {
+                        let mut prod = 1.0f32;
+                        for j in 0..cols {
+                            prod *= f32::from(tensor_data[i * cols + j]);
+                        }
+                        result_data[i] = crate::BFloat8::from(prod);
+                    }
+                }
+            }
+        }
         _ => return Err(format!("Prod not implemented for {}", array.dtype())),
     }
 
@@ -612,6 +1430,16 @@ fn prod_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     let mut result = array.ones(Shape::from([1]))?;
 
     match array.dtype() {
+        DType::F16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
+
+            let mut prod = 1.0f32;
+            for &val in tensor_data {
+                prod *= f32::from(val);
+            }
+            result_data[0] = crate::Float16::from(prod);
+        }
         DType::F32 => {
             let tensor_data = unsafe { data_as_slice::<f32>(array) };
             let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
@@ -631,6 +1459,46 @@ fn prod_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
                 prod *= val;
             }
             result_data[0] = prod;
+        }
+        DType::BF16 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat16>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
+
+            let mut prod = 1.0f32;
+            for &val in tensor_data {
+                prod *= val.to_f32();
+            }
+            result_data[0] = crate::BFloat16::from_f32(prod);
+        }
+        DType::BF8 => {
+            let tensor_data = unsafe { data_as_slice::<crate::BFloat8>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
+
+            let mut prod = 1.0f32;
+            for &val in tensor_data {
+                prod *= f32::from(val);
+            }
+            result_data[0] = crate::BFloat8::from(prod);
+        }
+        DType::F8E4M3FN => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E4M3Fn>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
+
+            let mut prod = 1.0f32;
+            for &val in tensor_data {
+                prod *= f32::from(val);
+            }
+            result_data[0] = crate::Float8E4M3Fn::from(prod);
+        }
+        DType::F8E5M2 => {
+            let tensor_data = unsafe { data_as_slice::<crate::Float8E5M2>(array) };
+            let result_data = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
+
+            let mut prod = 1.0f32;
+            for &val in tensor_data {
+                prod *= f32::from(val);
+            }
+            result_data[0] = crate::Float8E5M2::from(prod);
         }
         _ => return Err(format!("Prod not implemented for {}", array.dtype())),
     }
