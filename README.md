@@ -36,6 +36,36 @@ let row_sums = sum(&a, Some(1))?; // Sum along axis
 
 **Design Philosophy**: Numina provides the low-level backend infrastructure. High-level tensor APIs (like `Tensor` types) are provided by dependent crates like [`laminax-types`](../laminax-types/) which build upon Numina's `NdArray` trait.
 
+## DType ID Table
+
+Stable dtype IDs are serialized in Lamina IR and Laminax runtime. IDs are explicit and frozen.
+
+FP8 formats follow the E4M3FN (finite-only, max 448) and E5M2 (Inf/NaN, max 57344) conventions with round-to-nearest-even (RTNE) rounding.
+
+| Name | DType | ID | Bytes | Storage Bits | Align |
+| --- | --- | --- | --- | --- | --- |
+| float16 | `F16` | 1 | 2 | 16 | 2 |
+| float32 | `F32` | 2 | 4 | 32 | 4 |
+| float64 | `F64` | 3 | 8 | 64 | 8 |
+| bfloat16 | `BF16` | 4 | 2 | 16 | 2 |
+| bfloat8 | `BF8` | 5 | 1 | 8 | 1 |
+| float8_e4m3fn | `F8E4M3FN` | 6 | 1 | 8 | 1 |
+| float8_e5m2 | `F8E5M2` | 7 | 1 | 8 | 1 |
+| complex32 | `Complex32` | 50 | 4 | 32 | 2 |
+| complex64 | `Complex64` | 51 | 8 | 64 | 4 |
+| complex128 | `Complex128` | 52 | 16 | 128 | 8 |
+| int8 | `I8` | 10 | 1 | 8 | 1 |
+| int16 | `I16` | 11 | 2 | 16 | 2 |
+| int32 | `I32` | 12 | 4 | 32 | 4 |
+| int64 | `I64` | 13 | 8 | 64 | 8 |
+| uint8 | `U8` | 20 | 1 | 8 | 1 |
+| uint16 | `U16` | 21 | 2 | 16 | 2 |
+| uint32 | `U32` | 22 | 4 | 32 | 4 |
+| uint64 | `U64` | 23 | 8 | 64 | 8 |
+| bool | `Bool` | 30 | 1 | 8 | 1 |
+| quantized_i4 | `QI4` | 40 | 1 | 4 | 1 |
+| quantized_u8 | `QU8` | 41 | 1 | 8 | 1 |
+
 ## Custom Data Types
 
 ```rust
