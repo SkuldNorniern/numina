@@ -1,21 +1,32 @@
-//! Float8 types (E4M3FN, E5M2)
+//! Float8 types (E4M3FN, E5M2).
+//!
+//! These are compact 8-bit float-like formats used by Numina. The canonical byte representation is
+//! the raw 8-bit payload.
 
-use crate::dtype::DTypeCandidate;
+use crate::dtype::{DTypeCandidate, FloatDType};
 use std::fmt;
 
+/// Float8 in E4M3FN (finite-only) format.
+///
+/// Layout: `#[repr(transparent)]` over `u8` holding the raw bits.
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Float8E4M3Fn(u8);
 
+/// Float8 in E5M2 (Inf/NaN capable) format.
+///
+/// Layout: `#[repr(transparent)]` over `u8` holding the raw bits.
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Float8E5M2(u8);
 
 impl Float8E4M3Fn {
+    /// Convert an `f32` into Float8 E4M3FN (lossy).
     pub fn from_f32(value: f32) -> Self {
         Float8E4M3Fn(encode_e4m3fn(value))
     }
 
+    /// Convert this value to `f32`.
     pub fn to_f32(self) -> f32 {
         decode_e4m3fn(self.0)
     }
@@ -32,10 +43,12 @@ impl Float8E4M3Fn {
 }
 
 impl Float8E5M2 {
+    /// Convert an `f32` into Float8 E5M2 (lossy).
     pub fn from_f32(value: f32) -> Self {
         Float8E5M2(encode_e5m2(value))
     }
 
+    /// Convert this value to `f32`.
     pub fn to_f32(self) -> f32 {
         decode_e5m2(self.0)
     }
@@ -110,6 +123,16 @@ impl DTypeCandidate for Float8E4M3Fn {
     }
 }
 
+impl FloatDType for Float8E4M3Fn {
+    fn from_f32(value: f32) -> Self {
+        Float8E4M3Fn::from_f32(value)
+    }
+
+    fn to_f32(self) -> f32 {
+        self.to_f32()
+    }
+}
+
 impl DTypeCandidate for Float8E5M2 {
     fn size_bytes(&self) -> usize {
         1
@@ -142,6 +165,16 @@ impl DTypeCandidate for Float8E5M2 {
 
     fn to_bytes(&self) -> Vec<u8> {
         vec![self.0]
+    }
+}
+
+impl FloatDType for Float8E5M2 {
+    fn from_f32(value: f32) -> Self {
+        Float8E5M2::from_f32(value)
+    }
+
+    fn to_f32(self) -> f32 {
+        self.to_f32()
     }
 }
 

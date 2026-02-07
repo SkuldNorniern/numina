@@ -3,71 +3,65 @@
 use crate::dtype::DTypeCandidate;
 use std::fmt;
 
-/// Quantized 4-bit signed integer type
-/// Stores two INT4 values per byte for memory efficiency
+/// Quantized 4-bit signed integer stored in a single byte.
+///
+/// This type uses the low nibble (4 bits) to store a signed value in the range [-8, 7]
+/// using a bias of +8. The high nibble is unused for single-value APIs, but `pack()` can
+/// store two values (hi/lo) in one byte.
+///
+/// Quantization parameters (scale/zero-point) are treated as external metadata.
+#[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct QuantizedI4 {
-    // Two 4-bit values packed into one byte
-    // High 4 bits: first value, Low 4 bits: second value
-    packed_values: u8,
-    // Store scale as IEEE 754 bits for Hash/Eq compatibility
-    scale_bits: u32,
-    // Index to determine which 4-bit value to use (0 or 1)
-    index: u8,
-}
+pub struct QuantizedI4(pub u8);
 
 impl QuantizedI4 {
-    /// Create a new QuantizedI4 from a single i8 value
-    pub fn from_i8(value: i8, scale: f32) -> Self {
-        // Clamp to valid INT4 range (-8 to 7)
-        let clamped = value.clamp(-8, 7);
-        // Convert to unsigned representation (0-15) and store in high bits
-        let unsigned = (clamped + 8) as u8;
-        QuantizedI4 {
-            packed_values: unsigned << 4, // Store in high bits, low bits unused for single value
-            scale_bits: scale.to_bits(),
-            index: 0,
-        }
+    #[inline]
+    fn encode_nibble(value: i8) -> u8 {
+        // Clamp to valid INT4 range (-8 to 7) and bias to unsigned [0, 15].
+        ((value.clamp(-8, 7) + 8) as u8) & 0xF
     }
 
-    /// Pack two INT4 values into one byte
-    pub fn pack(val1: i8, val2: i8, scale: f32) -> Self {
-        let u1 = ((val1.clamp(-8, 7) + 8) as u8) & 0xF;
-        let u2 = ((val2.clamp(-8, 7) + 8) as u8) & 0xF;
-        QuantizedI4 {
-            packed_values: (u1 << 4) | u2,
-            scale_bits: scale.to_bits(),
-            index: 0, // Not used when packed
-        }
+    #[inline]
+    fn decode_nibble(nibble: u8) -> i8 {
+        (nibble & 0xF) as i8 - 8
     }
 
-    /// Dequantize back to i8
-    pub fn dequantize(&self) -> i8 {
-        let unsigned = if self.index == 0 {
-            self.packed_values >> 4 // High 4 bits
-        } else {
-            self.packed_values & 0xF // Low 4 bits
-        };
-        // Convert back to signed (-8 to 7)
-        let signed = (unsigned as i8) - 8;
-        let scale = f32::from_bits(self.scale_bits);
-        (signed as f32 * scale) as i8
+    /// Create a single INT4 value encoded in the low nibble.
+    pub fn from_i8(value: i8) -> Self {
+        Self(Self::encode_nibble(value))
     }
 
-    /// Get the scale factor
-    pub fn scale(&self) -> f32 {
-        f32::from_bits(self.scale_bits)
+    /// Decode the low-nibble value.
+    pub fn to_i8(self) -> i8 {
+        Self::decode_nibble(self.0)
     }
 
-    /// Get the raw packed byte value
-    pub fn packed_byte(&self) -> u8 {
-        self.packed_values
+    /// Pack two INT4 values into one byte (hi nibble = `hi`, lo nibble = `lo`).
+    pub fn pack(hi: i8, lo: i8) -> Self {
+        let u_hi = Self::encode_nibble(hi);
+        let u_lo = Self::encode_nibble(lo);
+        Self((u_hi << 4) | u_lo)
+    }
+
+    /// Unpack the high nibble and decode it to a signed INT4 value in `[-8, 7]`.
+    pub fn unpack_hi(self) -> i8 {
+        Self::decode_nibble(self.0 >> 4)
+    }
+
+    /// Unpack the low nibble and decode it to a signed INT4 value in `[-8, 7]`.
+    pub fn unpack_lo(self) -> i8 {
+        Self::decode_nibble(self.0)
+    }
+
+    /// Return the raw packed storage byte (hi nibble + lo nibble).
+    pub fn packed_byte(self) -> u8 {
+        self.0
     }
 }
 
 impl DTypeCandidate for QuantizedI4 {
     fn size_bytes(&self) -> usize {
-        1 // 4 bits per value, but we allocate per byte for simplicity
+        1
     }
 
     fn is_float(&self) -> bool {
@@ -92,21 +86,17 @@ impl DTypeCandidate for QuantizedI4 {
 
     unsafe fn from_bytes(bytes: &[u8]) -> Self {
         assert_eq!(bytes.len(), 1, "QuantizedI4 requires exactly 1 byte");
-        QuantizedI4 {
-            packed_values: bytes[0],
-            scale_bits: 1.0f32.to_bits(), // Default scale
-            index: 0,
-        }
+        Self(bytes[0])
     }
 
     fn to_bytes(&self) -> Vec<u8> {
-        vec![self.packed_values]
+        vec![self.0]
     }
 }
 
 impl fmt::Display for QuantizedI4 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}({})", self.type_name(), self.dequantize())
+        write!(f, "{}({})", self.type_name(), self.to_i8())
     }
 }
 
@@ -117,53 +107,27 @@ mod tests {
     #[test]
     fn quantized_i4_single_value() {
         let original: i8 = 5;
-        let quantized = QuantizedI4::from_i8(original, 1.0);
-        let dequantized = quantized.dequantize();
-
-        assert_eq!(dequantized, original);
+        let quantized = QuantizedI4::from_i8(original);
+        let decoded = quantized.to_i8();
+        assert_eq!(decoded, original);
     }
 
     #[test]
     fn quantized_i4_packed_values() {
-        let val1: i8 = 3;
-        let val2: i8 = -2;
-        let packed = QuantizedI4::pack(val1, val2, 1.0);
+        let hi: i8 = 3;
+        let lo: i8 = -2;
+        let packed = QuantizedI4::pack(hi, lo);
 
-        // Test first value
-        let q1 = QuantizedI4 {
-            packed_values: packed.packed_values,
-            scale_bits: packed.scale_bits,
-            index: 0,
-        };
-        assert_eq!(q1.dequantize(), val1);
-
-        // Test second value
-        let q2 = QuantizedI4 {
-            packed_values: packed.packed_values,
-            scale_bits: packed.scale_bits,
-            index: 1,
-        };
-        assert_eq!(q2.dequantize(), val2);
+        assert_eq!(packed.unpack_hi(), hi);
+        assert_eq!(packed.unpack_lo(), lo);
     }
 
     #[test]
-    fn quantized_i4_dtype_candidate() {
-        let qi4 = QuantizedI4::from_i8(2, 0.5);
-        assert_eq!(qi4.size_bytes(), 1);
-        assert!(!qi4.is_float());
-        assert!(qi4.is_int());
-        assert!(qi4.is_signed());
-        assert!(!qi4.is_bool());
-        assert_eq!(qi4.type_name(), "quantized_i4");
-    }
+    fn quantized_i4_clamps_range() {
+        let too_large = QuantizedI4::from_i8(10);
+        assert_eq!(too_large.to_i8(), 7);
 
-    #[test]
-    fn quantized_i4_clamping() {
-        // Test clamping to valid INT4 range
-        let too_large = QuantizedI4::from_i8(10, 1.0);
-        assert_eq!(too_large.dequantize(), 7); // Clamped to max
-
-        let too_small = QuantizedI4::from_i8(-10, 1.0);
-        assert_eq!(too_small.dequantize(), -8); // Clamped to min
+        let too_small = QuantizedI4::from_i8(-10);
+        assert_eq!(too_small.to_i8(), -8);
     }
 }

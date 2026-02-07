@@ -1,15 +1,21 @@
-//! Float16 (IEEE 754 half-precision) implementation
+//! Float16 (IEEE 754 half-precision) implementation.
+//!
+//! The canonical byte representation is the raw 16-bit IEEE-754 payload in **little-endian**.
 
-use crate::dtype::DTypeCandidate;
+use crate::dtype::{DTypeCandidate, FloatDType};
 use std::fmt;
 
-/// IEEE 754 half-precision floating point type
+/// IEEE-754 half-precision floating point type.
+///
+/// Layout: `#[repr(transparent)]` over `u16` holding the raw IEEE-754 bits.
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Float16(u16);
 
 impl Float16 {
-    /// Create a Float16 from f32
+    /// Convert an `f32` into `Float16`.
+    ///
+    /// This is a potentially lossy conversion.
     pub fn from_f32(value: f32) -> Self {
         value.into()
     }
@@ -24,7 +30,7 @@ impl Float16 {
         self.0
     }
 
-    /// Convert to f32
+    /// Convert this value to `f32`.
     pub fn to_f32(self) -> f32 {
         self.into()
     }
@@ -134,6 +140,16 @@ impl DTypeCandidate for Float16 {
 
     fn to_bytes(&self) -> Vec<u8> {
         self.0.to_le_bytes().to_vec()
+    }
+}
+
+impl FloatDType for Float16 {
+    fn from_f32(value: f32) -> Self {
+        Float16::from_f32(value)
+    }
+
+    fn to_f32(self) -> f32 {
+        self.to_f32()
     }
 }
 

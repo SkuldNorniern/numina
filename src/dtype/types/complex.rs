@@ -1,28 +1,50 @@
-//! Complex number types
+//! Complex number types.
+//!
+//! These are lightweight complex representations used for dtype identity and byte layout.
+//! Canonical encoding is little-endian and matches the field order in the structs.
 
 use super::float16::Float16;
 use crate::dtype::DTypeCandidate;
 use std::fmt;
 
+/// Complex number with two `Float16` components (`re`, `im`).
+///
+/// Layout is `re` then `im` (each `Float16` is 16-bit).
+#[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Complex32 {
+    /// Real component.
     pub re: Float16,
+    /// Imaginary component.
     pub im: Float16,
 }
 
+/// Complex number with two `f32` components stored as raw IEEE-754 bit patterns.
+///
+/// Storing raw bits allows `Eq`/`Hash` without floating-point semantic edge cases.
+#[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Complex64 {
+    /// Real component bits (`f32::to_bits()`).
     pub re_bits: u32,
+    /// Imaginary component bits (`f32::to_bits()`).
     pub im_bits: u32,
 }
 
+/// Complex number with two `f64` components stored as raw IEEE-754 bit patterns.
+///
+/// Storing raw bits allows `Eq`/`Hash` without floating-point semantic edge cases.
+#[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Complex128 {
+    /// Real component bits (`f64::to_bits()`).
     pub re_bits: u64,
+    /// Imaginary component bits (`f64::to_bits()`).
     pub im_bits: u64,
 }
 
 impl Complex32 {
+    /// Construct a complex number from `f32` real/imag parts (lossily converted to `Float16`).
     pub fn new(re: f32, im: f32) -> Self {
         Self {
             re: Float16::from(re),
@@ -30,12 +52,14 @@ impl Complex32 {
         }
     }
 
+    /// Convert to `(re, im)` as `f32` values.
     pub fn to_f32_tuple(self) -> (f32, f32) {
         (f32::from(self.re), f32::from(self.im))
     }
 }
 
 impl Complex64 {
+    /// Construct a complex number from `f32` real/imag parts.
     pub fn new(re: f32, im: f32) -> Self {
         Self {
             re_bits: re.to_bits(),
@@ -43,12 +67,14 @@ impl Complex64 {
         }
     }
 
+    /// Convert to `(re, im)` as `f32` values.
     pub fn to_f32_tuple(self) -> (f32, f32) {
         (f32::from_bits(self.re_bits), f32::from_bits(self.im_bits))
     }
 }
 
 impl Complex128 {
+    /// Construct a complex number from `f64` real/imag parts.
     pub fn new(re: f64, im: f64) -> Self {
         Self {
             re_bits: re.to_bits(),
@@ -56,6 +82,7 @@ impl Complex128 {
         }
     }
 
+    /// Convert to `(re, im)` as `f64` values.
     pub fn to_f64_tuple(self) -> (f64, f64) {
         (f64::from_bits(self.re_bits), f64::from_bits(self.im_bits))
     }

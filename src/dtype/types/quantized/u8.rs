@@ -1,44 +1,45 @@
-//! Quantized data type implementations
+//! Quantized u8 data type implementation
 
 use crate::dtype::DTypeCandidate;
 use std::fmt;
 
-/// Quantized 8-bit type with offset for asymmetric quantization
-/// Note: This is a simplified example. Real quantization would need proper metadata handling.
+/// Quantized 8-bit unsigned integer.
+///
+/// This type is a 1-byte wrapper to match Numina's canonical QU8 byte layout.
+/// Quantization parameters (scale/zero-point) are treated as external metadata.
+#[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct QuantizedU8 {
-    value: u8,
-    // For simplicity, we'll store scale as bits that can be compared
-    scale_bits: u32, // IEEE 754 f32 bits for scale
-}
+pub struct QuantizedU8(pub u8);
 
 impl QuantizedU8 {
-    pub fn new(value: u8, _zero_point: u8, scale: f32) -> Self {
-        QuantizedU8 {
-            value,
-            scale_bits: scale.to_bits(),
-        }
+    /// Wrap a raw quantized `u8` storage value.
+    pub fn from_raw(value: u8) -> Self {
+        Self(value)
     }
 
-    pub fn dequantize(&self) -> f32 {
-        // For this example, we'll assume zero_point = 0
-        let scale = f32::from_bits(self.scale_bits);
-        (self.value as f32) * scale
+    /// Return the underlying raw `u8` storage value.
+    pub fn raw(self) -> u8 {
+        self.0
     }
 
+    /// Quantize a `f32` value using `scale` (no zero-point).
+    ///
+    /// Values are rounded to the nearest integer and clamped to `[0, 255]`.
     pub fn quantize(value: f32, scale: f32) -> Self {
-        let quantized = (value / scale).round() as u8;
-        QuantizedU8::new(quantized, 0, scale)
+        // Simplified example (no zero-point).
+        let q = (value / scale).round().clamp(0.0, u8::MAX as f32) as u8;
+        Self(q)
     }
 
-    pub fn scale(&self) -> f32 {
-        f32::from_bits(self.scale_bits)
+    /// Dequantize this value using `scale` (no zero-point).
+    pub fn dequantize(self, scale: f32) -> f32 {
+        (self.0 as f32) * scale
     }
 }
 
 impl DTypeCandidate for QuantizedU8 {
     fn size_bytes(&self) -> usize {
-        1 // Just the u8 value, zero_point and scale are metadata
+        1
     }
 
     fn is_float(&self) -> bool {
@@ -63,19 +64,17 @@ impl DTypeCandidate for QuantizedU8 {
 
     unsafe fn from_bytes(bytes: &[u8]) -> Self {
         assert_eq!(bytes.len(), 1, "QuantizedU8 requires exactly 1 byte");
-        // Note: This loses zero_point and scale information
-        // In practice, you'd need a way to store/retrieve quantization parameters
-        QuantizedU8::new(bytes[0], 0, 1.0)
+        Self(bytes[0])
     }
 
     fn to_bytes(&self) -> Vec<u8> {
-        vec![self.value]
+        vec![self.0]
     }
 }
 
 impl fmt::Display for QuantizedU8 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}({})", self.type_name(), self.dequantize())
+        write!(f, "{}({})", self.type_name(), self.0)
     }
 }
 
@@ -86,8 +85,9 @@ mod tests {
     #[test]
     fn quantized_u8_conversion() {
         let original = 2.5f32;
-        let quantized = QuantizedU8::quantize(original, 0.01);
-        let dequantized = quantized.dequantize();
+        let scale = 0.01f32;
+        let quantized = QuantizedU8::quantize(original, scale);
+        let dequantized = quantized.dequantize(scale);
 
         // Should be close to original (within quantization error)
         assert!((dequantized - original).abs() < 0.1);
@@ -95,9 +95,7 @@ mod tests {
         // Test byte conversion
         let bytes = quantized.to_bytes();
         let reconstructed = unsafe { QuantizedU8::from_bytes(&bytes) };
-        // Note: reconstructed will have default scale=1.0
-        // In practice, you'd need a way to store/retrieve quantization parameters
-        assert_eq!(quantized.value, reconstructed.value);
+        assert_eq!(quantized, reconstructed);
     }
 
     #[test]

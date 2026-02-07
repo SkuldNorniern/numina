@@ -1,15 +1,22 @@
-//! BFloat16 (Brain Float 16-bit) implementation
+//! BFloat16 (Brain Float 16-bit) implementation.
+//!
+//! The canonical byte representation is the raw 16-bit BF16 payload in **little-endian**.
 
-use crate::dtype::DTypeCandidate;
+use crate::dtype::{DTypeCandidate, FloatDType};
 use std::fmt;
 
-/// Brain Float 16-bit floating point type
-/// Uses the same 16 bits as IEEE half-precision but with different exponent/manitssa split
+/// Brain Float 16-bit floating point type.
+///
+/// BF16 uses the top 16 bits of an IEEE-754 `f32`: 1 sign bit, 8 exponent bits, and 7 mantissa
+/// bits (truncating the low mantissa bits).
+///
+/// Layout: `#[repr(transparent)]` over `u16` holding the raw bits.
+#[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct BFloat16(u16);
 
 impl BFloat16 {
-    /// Create a BFloat16 from f32, truncating the mantissa
+    /// Convert an `f32` into `BFloat16` by truncating the mantissa.
     pub fn from_f32(value: f32) -> Self {
         // BFloat16: 1 sign bit, 8 exponent bits, 7 mantissa bits
         // Take the top 16 bits of f32 (sign + 8 exp + 7 mantissa)
@@ -17,7 +24,7 @@ impl BFloat16 {
         BFloat16((bits >> 16) as u16)
     }
 
-    /// Convert to f32 (lossless for the precision we store)
+    /// Convert this value to `f32` (lossless for the precision BF16 stores).
     pub fn to_f32(self) -> f32 {
         // Reconstruct f32 from BFloat16 bits
         let bits = (self.0 as u32) << 16;
@@ -58,6 +65,16 @@ impl DTypeCandidate for BFloat16 {
 
     fn to_bytes(&self) -> Vec<u8> {
         self.0.to_le_bytes().to_vec()
+    }
+}
+
+impl FloatDType for BFloat16 {
+    fn from_f32(value: f32) -> Self {
+        BFloat16::from_f32(value)
+    }
+
+    fn to_f32(self) -> f32 {
+        self.to_f32()
     }
 }
 

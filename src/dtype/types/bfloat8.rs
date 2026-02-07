@@ -1,20 +1,25 @@
-//! BFloat8 (Brain Float 8-bit) implementation
+//! BFloat8 (Brain Float 8-bit) implementation.
+//!
+//! This is a compact float-like format used by Numina. The canonical byte representation is the
+//! raw 8-bit payload (little-endian is trivial for a single byte).
 
-use crate::dtype::DTypeCandidate;
+use crate::dtype::{DTypeCandidate, FloatDType};
 use std::fmt;
 
-/// Brain Float 8-bit floating point type
+/// Brain Float 8-bit floating point type.
+///
+/// Layout: `#[repr(transparent)]` over `u8` holding the raw bits.
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct BFloat8(u8);
 
 impl BFloat8 {
-    /// Create a BFloat8 from f32
+    /// Convert an `f32` into `BFloat8` (lossy).
     pub fn from_f32(value: f32) -> Self {
         value.into()
     }
 
-    /// Convert to f32
+    /// Convert this value to `f32`.
     pub fn to_f32(self) -> f32 {
         self.into()
     }
@@ -134,6 +139,16 @@ impl DTypeCandidate for BFloat8 {
 
     fn to_bytes(&self) -> Vec<u8> {
         vec![self.0]
+    }
+}
+
+impl FloatDType for BFloat8 {
+    fn from_f32(value: f32) -> Self {
+        BFloat8::from_f32(value)
+    }
+
+    fn to_f32(self) -> f32 {
+        self.to_f32()
     }
 }
 
