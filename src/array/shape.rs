@@ -1,3 +1,8 @@
+//! Array shapes (dimensions).
+//!
+//! A [`Shape`] is a non-empty list of strictly-positive dimension sizes. It is used throughout the
+//! crate to describe the logical size of an array and to validate broadcasting and reshaping.
+
 use std::fmt;
 
 /// Represents the shape of a tensor (dimensions)

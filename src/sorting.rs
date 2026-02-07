@@ -1,9 +1,28 @@
-//! Sorting and searching operations
+//! Sorting and searching operations.
+//!
+//! These operations currently require host-accessible, contiguous storage.
+//!
+//! For floating-point dtypes, sorting uses a total ordering (`f64::total_cmp`) so NaNs are handled
+//! deterministically (as opposed to `partial_cmp` which can return `None`).
 
 use crate::array::{NdArray, data_as_slice, data_as_slice_mut, ensure_host_accessible};
 use crate::{DType, Shape};
 
-/// Sort array along specified axis
+fn sort_f64_total(values: &mut [f64], descending: bool) {
+    if descending {
+        values.sort_by(|a, b| b.total_cmp(a));
+    } else {
+        values.sort_by(|a, b| a.total_cmp(b));
+    }
+}
+
+/// Sort an array along `axis`, or sort the flattened array when `axis` is `None`.
+///
+/// For float-like dtypes this uses a total ordering, which gives deterministic placement of NaNs.
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous, the axis is out of bounds, or
+/// the dtype/shape combination is unsupported.
 pub fn sort<A: NdArray>(
     array: &A,
     axis: Option<usize>,
@@ -31,6 +50,10 @@ fn sort_axis<A: NdArray>(
         ));
     }
 
+    if array.shape().ndim() > 2 {
+        return Err("sort with axis currently supports only 1D or 2D arrays".to_string());
+    }
+
     let mut result = array.zeros(array.shape().clone())?;
 
     match array.dtype() {
@@ -41,11 +64,7 @@ fn sort_axis<A: NdArray>(
             if array.shape().ndim() == 1 {
                 let mut values: Vec<f64> =
                     tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
-                if descending {
-                    values.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                } else {
-                    values.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                }
+                sort_f64_total(&mut values, descending);
                 for i in 0..values.len() {
                     result_data[i] = crate::Float16::from(values[i] as f32);
                 }
@@ -57,11 +76,7 @@ fn sort_axis<A: NdArray>(
                         let mut column: Vec<f64> = (0..rows)
                             .map(|i| f32::from(tensor_data[i * cols + j]) as f64)
                             .collect();
-                        if descending {
-                            column.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                        } else {
-                            column.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        }
+                        sort_f64_total(&mut column, descending);
                         for i in 0..rows {
                             result_data[i * cols + j] = crate::Float16::from(column[i] as f32);
                         }
@@ -71,11 +86,7 @@ fn sort_axis<A: NdArray>(
                         let mut row: Vec<f64> = (0..cols)
                             .map(|j| f32::from(tensor_data[i * cols + j]) as f64)
                             .collect();
-                        if descending {
-                            row.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                        } else {
-                            row.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        }
+                        sort_f64_total(&mut row, descending);
                         for j in 0..cols {
                             result_data[i * cols + j] = crate::Float16::from(row[j] as f32);
                         }
@@ -89,11 +100,7 @@ fn sort_axis<A: NdArray>(
 
             if array.shape().ndim() == 1 {
                 let mut values: Vec<f64> = tensor_data.iter().map(|&x| x as f64).collect();
-                if descending {
-                    values.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                } else {
-                    values.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                }
+                sort_f64_total(&mut values, descending);
                 for i in 0..values.len() {
                     result_data[i] = values[i] as f32;
                 }
@@ -105,11 +112,7 @@ fn sort_axis<A: NdArray>(
                         let mut column: Vec<f64> = (0..rows)
                             .map(|i| tensor_data[i * cols + j] as f64)
                             .collect();
-                        if descending {
-                            column.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                        } else {
-                            column.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        }
+                        sort_f64_total(&mut column, descending);
                         for i in 0..rows {
                             result_data[i * cols + j] = column[i] as f32;
                         }
@@ -119,11 +122,7 @@ fn sort_axis<A: NdArray>(
                         let mut row: Vec<f64> = (0..cols)
                             .map(|j| tensor_data[i * cols + j] as f64)
                             .collect();
-                        if descending {
-                            row.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                        } else {
-                            row.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        }
+                        sort_f64_total(&mut row, descending);
                         for j in 0..cols {
                             result_data[i * cols + j] = row[j] as f32;
                         }
@@ -137,14 +136,8 @@ fn sort_axis<A: NdArray>(
 
             if array.shape().ndim() == 1 {
                 let mut values: Vec<f64> = tensor_data.to_vec();
-                if descending {
-                    values.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                } else {
-                    values.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                }
-                for i in 0..values.len() {
-                    result_data[i] = values[i];
-                }
+                sort_f64_total(&mut values, descending);
+                result_data.copy_from_slice(&values);
             } else if array.shape().ndim() == 2 {
                 let (rows, cols) = (array.shape().dim(0), array.shape().dim(1));
 
@@ -152,11 +145,7 @@ fn sort_axis<A: NdArray>(
                     for j in 0..cols {
                         let mut column: Vec<f64> =
                             (0..rows).map(|i| tensor_data[i * cols + j]).collect();
-                        if descending {
-                            column.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                        } else {
-                            column.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        }
+                        sort_f64_total(&mut column, descending);
                         for i in 0..rows {
                             result_data[i * cols + j] = column[i];
                         }
@@ -165,11 +154,7 @@ fn sort_axis<A: NdArray>(
                     for i in 0..rows {
                         let mut row: Vec<f64> =
                             (0..cols).map(|j| tensor_data[i * cols + j]).collect();
-                        if descending {
-                            row.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                        } else {
-                            row.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        }
+                        sort_f64_total(&mut row, descending);
                         for j in 0..cols {
                             result_data[i * cols + j] = row[j];
                         }
@@ -183,11 +168,7 @@ fn sort_axis<A: NdArray>(
 
             if array.shape().ndim() == 1 {
                 let mut values: Vec<f64> = tensor_data.iter().map(|&x| x.to_f32() as f64).collect();
-                if descending {
-                    values.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                } else {
-                    values.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                }
+                sort_f64_total(&mut values, descending);
                 for i in 0..values.len() {
                     result_data[i] = crate::BFloat16::from_f32(values[i] as f32);
                 }
@@ -199,11 +180,7 @@ fn sort_axis<A: NdArray>(
                         let mut column: Vec<f64> = (0..rows)
                             .map(|i| tensor_data[i * cols + j].to_f32() as f64)
                             .collect();
-                        if descending {
-                            column.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                        } else {
-                            column.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        }
+                        sort_f64_total(&mut column, descending);
                         for i in 0..rows {
                             result_data[i * cols + j] = crate::BFloat16::from_f32(column[i] as f32);
                         }
@@ -213,11 +190,7 @@ fn sort_axis<A: NdArray>(
                         let mut row: Vec<f64> = (0..cols)
                             .map(|j| tensor_data[i * cols + j].to_f32() as f64)
                             .collect();
-                        if descending {
-                            row.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                        } else {
-                            row.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        }
+                        sort_f64_total(&mut row, descending);
                         for j in 0..cols {
                             result_data[i * cols + j] = crate::BFloat16::from_f32(row[j] as f32);
                         }
@@ -232,11 +205,7 @@ fn sort_axis<A: NdArray>(
             if array.shape().ndim() == 1 {
                 let mut values: Vec<f64> =
                     tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
-                if descending {
-                    values.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                } else {
-                    values.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                }
+                sort_f64_total(&mut values, descending);
                 for i in 0..values.len() {
                     result_data[i] = crate::BFloat8::from(values[i] as f32);
                 }
@@ -248,11 +217,7 @@ fn sort_axis<A: NdArray>(
                         let mut column: Vec<f64> = (0..rows)
                             .map(|i| f32::from(tensor_data[i * cols + j]) as f64)
                             .collect();
-                        if descending {
-                            column.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                        } else {
-                            column.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        }
+                        sort_f64_total(&mut column, descending);
                         for i in 0..rows {
                             result_data[i * cols + j] = crate::BFloat8::from(column[i] as f32);
                         }
@@ -262,11 +227,7 @@ fn sort_axis<A: NdArray>(
                         let mut row: Vec<f64> = (0..cols)
                             .map(|j| f32::from(tensor_data[i * cols + j]) as f64)
                             .collect();
-                        if descending {
-                            row.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                        } else {
-                            row.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        }
+                        sort_f64_total(&mut row, descending);
                         for j in 0..cols {
                             result_data[i * cols + j] = crate::BFloat8::from(row[j] as f32);
                         }
@@ -281,11 +242,7 @@ fn sort_axis<A: NdArray>(
             if array.shape().ndim() == 1 {
                 let mut values: Vec<f64> =
                     tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
-                if descending {
-                    values.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                } else {
-                    values.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                }
+                sort_f64_total(&mut values, descending);
                 for i in 0..values.len() {
                     result_data[i] = crate::Float8E4M3Fn::from(values[i] as f32);
                 }
@@ -297,11 +254,7 @@ fn sort_axis<A: NdArray>(
                         let mut column: Vec<f64> = (0..rows)
                             .map(|i| f32::from(tensor_data[i * cols + j]) as f64)
                             .collect();
-                        if descending {
-                            column.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                        } else {
-                            column.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        }
+                        sort_f64_total(&mut column, descending);
                         for i in 0..rows {
                             result_data[i * cols + j] = crate::Float8E4M3Fn::from(column[i] as f32);
                         }
@@ -311,11 +264,7 @@ fn sort_axis<A: NdArray>(
                         let mut row: Vec<f64> = (0..cols)
                             .map(|j| f32::from(tensor_data[i * cols + j]) as f64)
                             .collect();
-                        if descending {
-                            row.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                        } else {
-                            row.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        }
+                        sort_f64_total(&mut row, descending);
                         for j in 0..cols {
                             result_data[i * cols + j] = crate::Float8E4M3Fn::from(row[j] as f32);
                         }
@@ -330,11 +279,7 @@ fn sort_axis<A: NdArray>(
             if array.shape().ndim() == 1 {
                 let mut values: Vec<f64> =
                     tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
-                if descending {
-                    values.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                } else {
-                    values.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                }
+                sort_f64_total(&mut values, descending);
                 for i in 0..values.len() {
                     result_data[i] = crate::Float8E5M2::from(values[i] as f32);
                 }
@@ -346,11 +291,7 @@ fn sort_axis<A: NdArray>(
                         let mut column: Vec<f64> = (0..rows)
                             .map(|i| f32::from(tensor_data[i * cols + j]) as f64)
                             .collect();
-                        if descending {
-                            column.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                        } else {
-                            column.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        }
+                        sort_f64_total(&mut column, descending);
                         for i in 0..rows {
                             result_data[i * cols + j] = crate::Float8E5M2::from(column[i] as f32);
                         }
@@ -360,11 +301,7 @@ fn sort_axis<A: NdArray>(
                         let mut row: Vec<f64> = (0..cols)
                             .map(|j| f32::from(tensor_data[i * cols + j]) as f64)
                             .collect();
-                        if descending {
-                            row.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                        } else {
-                            row.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        }
+                        sort_f64_total(&mut row, descending);
                         for j in 0..cols {
                             result_data[i * cols + j] = crate::Float8E5M2::from(row[j] as f32);
                         }
@@ -384,6 +321,11 @@ fn sort_axis<A: NdArray>(
                     values.sort();
                 }
                 result_data.copy_from_slice(&values);
+            } else {
+                return Err(
+                    "sort with axis currently supports only 1D arrays for integer dtypes"
+                        .to_string(),
+                );
             }
         }
         DType::I16 => {
@@ -398,6 +340,11 @@ fn sort_axis<A: NdArray>(
                     values.sort();
                 }
                 result_data.copy_from_slice(&values);
+            } else {
+                return Err(
+                    "sort with axis currently supports only 1D arrays for integer dtypes"
+                        .to_string(),
+                );
             }
         }
         DType::I32 => {
@@ -412,6 +359,11 @@ fn sort_axis<A: NdArray>(
                     values.sort();
                 }
                 result_data.copy_from_slice(&values);
+            } else {
+                return Err(
+                    "sort with axis currently supports only 1D arrays for integer dtypes"
+                        .to_string(),
+                );
             }
         }
         DType::I64 => {
@@ -426,6 +378,11 @@ fn sort_axis<A: NdArray>(
                     values.sort();
                 }
                 result_data.copy_from_slice(&values);
+            } else {
+                return Err(
+                    "sort with axis currently supports only 1D arrays for integer dtypes"
+                        .to_string(),
+                );
             }
         }
         DType::U8 => {
@@ -440,6 +397,11 @@ fn sort_axis<A: NdArray>(
                     values.sort();
                 }
                 result_data.copy_from_slice(&values);
+            } else {
+                return Err(
+                    "sort with axis currently supports only 1D arrays for integer dtypes"
+                        .to_string(),
+                );
             }
         }
         DType::U16 => {
@@ -454,6 +416,11 @@ fn sort_axis<A: NdArray>(
                     values.sort();
                 }
                 result_data.copy_from_slice(&values);
+            } else {
+                return Err(
+                    "sort with axis currently supports only 1D arrays for integer dtypes"
+                        .to_string(),
+                );
             }
         }
         DType::U32 => {
@@ -468,6 +435,11 @@ fn sort_axis<A: NdArray>(
                     values.sort();
                 }
                 result_data.copy_from_slice(&values);
+            } else {
+                return Err(
+                    "sort with axis currently supports only 1D arrays for integer dtypes"
+                        .to_string(),
+                );
             }
         }
         DType::U64 => {
@@ -482,6 +454,11 @@ fn sort_axis<A: NdArray>(
                     values.sort();
                 }
                 result_data.copy_from_slice(&values);
+            } else {
+                return Err(
+                    "sort with axis currently supports only 1D arrays for integer dtypes"
+                        .to_string(),
+                );
             }
         }
         DType::Bool => {
@@ -511,11 +488,7 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
             let result_data = unsafe { data_as_slice_mut::<crate::Float16>(&mut *result) };
 
             let mut values: Vec<f64> = tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
-            if descending {
-                values.sort_by(|a, b| b.partial_cmp(a).unwrap());
-            } else {
-                values.sort_by(|a, b| a.partial_cmp(b).unwrap());
-            }
+            sort_f64_total(&mut values, descending);
             for i in 0..values.len() {
                 result_data[i] = crate::Float16::from(values[i] as f32);
             }
@@ -525,11 +498,7 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
             let result_data = unsafe { data_as_slice_mut::<f32>(&mut *result) };
 
             let mut values: Vec<f64> = tensor_data.iter().map(|&x| x as f64).collect();
-            if descending {
-                values.sort_by(|a, b| b.partial_cmp(a).unwrap());
-            } else {
-                values.sort_by(|a, b| a.partial_cmp(b).unwrap());
-            }
+            sort_f64_total(&mut values, descending);
             for i in 0..values.len() {
                 result_data[i] = values[i] as f32;
             }
@@ -539,11 +508,7 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
             let result_data = unsafe { data_as_slice_mut::<f64>(&mut *result) };
 
             let mut values: Vec<f64> = tensor_data.to_vec();
-            if descending {
-                values.sort_by(|a, b| b.partial_cmp(a).unwrap());
-            } else {
-                values.sort_by(|a, b| a.partial_cmp(b).unwrap());
-            }
+            sort_f64_total(&mut values, descending);
             result_data.copy_from_slice(&values);
         }
         DType::BF16 => {
@@ -551,11 +516,7 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
             let result_data = unsafe { data_as_slice_mut::<crate::BFloat16>(&mut *result) };
 
             let mut values: Vec<f64> = tensor_data.iter().map(|&x| x.to_f32() as f64).collect();
-            if descending {
-                values.sort_by(|a, b| b.partial_cmp(a).unwrap());
-            } else {
-                values.sort_by(|a, b| a.partial_cmp(b).unwrap());
-            }
+            sort_f64_total(&mut values, descending);
             for i in 0..values.len() {
                 result_data[i] = crate::BFloat16::from_f32(values[i] as f32);
             }
@@ -565,11 +526,7 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
             let result_data = unsafe { data_as_slice_mut::<crate::BFloat8>(&mut *result) };
 
             let mut values: Vec<f64> = tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
-            if descending {
-                values.sort_by(|a, b| b.partial_cmp(a).unwrap());
-            } else {
-                values.sort_by(|a, b| a.partial_cmp(b).unwrap());
-            }
+            sort_f64_total(&mut values, descending);
             for i in 0..values.len() {
                 result_data[i] = crate::BFloat8::from(values[i] as f32);
             }
@@ -579,11 +536,7 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
             let result_data = unsafe { data_as_slice_mut::<crate::Float8E4M3Fn>(&mut *result) };
 
             let mut values: Vec<f64> = tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
-            if descending {
-                values.sort_by(|a, b| b.partial_cmp(a).unwrap());
-            } else {
-                values.sort_by(|a, b| a.partial_cmp(b).unwrap());
-            }
+            sort_f64_total(&mut values, descending);
             for i in 0..values.len() {
                 result_data[i] = crate::Float8E4M3Fn::from(values[i] as f32);
             }
@@ -593,11 +546,7 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
             let result_data = unsafe { data_as_slice_mut::<crate::Float8E5M2>(&mut *result) };
 
             let mut values: Vec<f64> = tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
-            if descending {
-                values.sort_by(|a, b| b.partial_cmp(a).unwrap());
-            } else {
-                values.sort_by(|a, b| a.partial_cmp(b).unwrap());
-            }
+            sort_f64_total(&mut values, descending);
             for i in 0..values.len() {
                 result_data[i] = crate::Float8E5M2::from(values[i] as f32);
             }
@@ -715,7 +664,13 @@ fn sort_flatten<A: NdArray>(array: &A, descending: bool) -> Result<Box<dyn NdArr
     Ok(result)
 }
 
-/// Get indices that would sort the array
+/// Return indices that would sort the array (argsort).
+///
+/// Currently this only supports 1D arrays.
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous, the array is not 1D, or the
+/// dtype is unsupported.
 pub fn argsort<A: NdArray>(
     array: &A,
     _axis: Option<usize>,
@@ -735,11 +690,9 @@ pub fn argsort<A: NdArray>(
             let values: Vec<f64> = tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
 
             if descending {
-                indices
-                    .sort_by(|&a, &b| values[b as usize].partial_cmp(&values[a as usize]).unwrap());
+                indices.sort_by(|&a, &b| values[b as usize].total_cmp(&values[a as usize]));
             } else {
-                indices
-                    .sort_by(|&a, &b| values[a as usize].partial_cmp(&values[b as usize]).unwrap());
+                indices.sort_by(|&a, &b| values[a as usize].total_cmp(&values[b as usize]));
             }
         }
         DType::F32 => {
@@ -747,11 +700,9 @@ pub fn argsort<A: NdArray>(
             let values: Vec<f64> = tensor_data.iter().map(|&x| x as f64).collect();
 
             if descending {
-                indices
-                    .sort_by(|&a, &b| values[b as usize].partial_cmp(&values[a as usize]).unwrap());
+                indices.sort_by(|&a, &b| values[b as usize].total_cmp(&values[a as usize]));
             } else {
-                indices
-                    .sort_by(|&a, &b| values[a as usize].partial_cmp(&values[b as usize]).unwrap());
+                indices.sort_by(|&a, &b| values[a as usize].total_cmp(&values[b as usize]));
             }
         }
         DType::F64 => {
@@ -759,11 +710,9 @@ pub fn argsort<A: NdArray>(
             let values: Vec<f64> = tensor_data.to_vec();
 
             if descending {
-                indices
-                    .sort_by(|&a, &b| values[b as usize].partial_cmp(&values[a as usize]).unwrap());
+                indices.sort_by(|&a, &b| values[b as usize].total_cmp(&values[a as usize]));
             } else {
-                indices
-                    .sort_by(|&a, &b| values[a as usize].partial_cmp(&values[b as usize]).unwrap());
+                indices.sort_by(|&a, &b| values[a as usize].total_cmp(&values[b as usize]));
             }
         }
         DType::BF16 => {
@@ -771,11 +720,9 @@ pub fn argsort<A: NdArray>(
             let values: Vec<f64> = tensor_data.iter().map(|&x| x.to_f32() as f64).collect();
 
             if descending {
-                indices
-                    .sort_by(|&a, &b| values[b as usize].partial_cmp(&values[a as usize]).unwrap());
+                indices.sort_by(|&a, &b| values[b as usize].total_cmp(&values[a as usize]));
             } else {
-                indices
-                    .sort_by(|&a, &b| values[a as usize].partial_cmp(&values[b as usize]).unwrap());
+                indices.sort_by(|&a, &b| values[a as usize].total_cmp(&values[b as usize]));
             }
         }
         DType::BF8 => {
@@ -783,11 +730,9 @@ pub fn argsort<A: NdArray>(
             let values: Vec<f64> = tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
 
             if descending {
-                indices
-                    .sort_by(|&a, &b| values[b as usize].partial_cmp(&values[a as usize]).unwrap());
+                indices.sort_by(|&a, &b| values[b as usize].total_cmp(&values[a as usize]));
             } else {
-                indices
-                    .sort_by(|&a, &b| values[a as usize].partial_cmp(&values[b as usize]).unwrap());
+                indices.sort_by(|&a, &b| values[a as usize].total_cmp(&values[b as usize]));
             }
         }
         DType::F8E4M3FN => {
@@ -795,11 +740,9 @@ pub fn argsort<A: NdArray>(
             let values: Vec<f64> = tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
 
             if descending {
-                indices
-                    .sort_by(|&a, &b| values[b as usize].partial_cmp(&values[a as usize]).unwrap());
+                indices.sort_by(|&a, &b| values[b as usize].total_cmp(&values[a as usize]));
             } else {
-                indices
-                    .sort_by(|&a, &b| values[a as usize].partial_cmp(&values[b as usize]).unwrap());
+                indices.sort_by(|&a, &b| values[a as usize].total_cmp(&values[b as usize]));
             }
         }
         DType::F8E5M2 => {
@@ -807,11 +750,9 @@ pub fn argsort<A: NdArray>(
             let values: Vec<f64> = tensor_data.iter().map(|&x| f32::from(x) as f64).collect();
 
             if descending {
-                indices
-                    .sort_by(|&a, &b| values[b as usize].partial_cmp(&values[a as usize]).unwrap());
+                indices.sort_by(|&a, &b| values[b as usize].total_cmp(&values[a as usize]));
             } else {
-                indices
-                    .sort_by(|&a, &b| values[a as usize].partial_cmp(&values[b as usize]).unwrap());
+                indices.sort_by(|&a, &b| values[a as usize].total_cmp(&values[b as usize]));
             }
         }
         DType::I8 => {
@@ -908,7 +849,14 @@ pub fn argsort<A: NdArray>(
     Ok(result)
 }
 
-/// Find indices where condition is true (basic boolean indexing support)
+/// Find indices where `condition` is true.
+///
+/// This is a minimal "where" helper (basic boolean indexing support). Currently this only
+/// supports 1D arrays and evaluates the predicate against `f32` values.
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous, the array is not 1D, or the
+/// dtype is unsupported.
 pub fn where_condition<A, F>(array: &A, condition: F) -> Result<Vec<usize>, String>
 where
     A: NdArray,

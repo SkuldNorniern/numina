@@ -1,7 +1,18 @@
-//! # Numina - Safe Tensor Library for Rust
+//! # Numina - Backend-Agnostic Array Library for Rust
 //!
-//! Numina provides a safe, efficient tensor library with ndarray-compatible API,
-//! designed as the foundation for high-performance computing in Rust.
+//! Numina provides a safe, efficient array library with an ndarray-compatible API, designed as the
+//! foundation for high-performance computing backends in Rust.
+//!
+//! ## Backends
+//! Numina exposes operations over the [`NdArray`] trait. This lets the same ops run on:
+//! - typed CPU arrays ([`Array<T>`])
+//! - byte-addressable CPU arrays ([`CpuBytesArray`])
+//! - future backends (GPU, remote) that implement `NdArray`
+//!
+//! ## Safety model
+//! Numina uses internal `unsafe` casting when operating over raw bytes. Implementing
+//! [`dtype::DTypeLike`] for a custom type is therefore an **unsafe contract**: your type's
+//! in-memory layout must match the dtype you claim.
 
 pub mod array;
 pub mod dtype;
@@ -11,10 +22,10 @@ pub mod sorting;
 
 pub use array::{Array, CpuBytesArray, NdArray, Shape, Strides};
 pub use dtype::{
-    DType, DTypeCandidate, DTypeId, DTypeInfo, DTypeLike,
+    DType, DTypeCandidate, DTypeElement, DTypeId, DTypeInfo, DTypeLike,
     types::{
         BFloat8, BFloat16, Complex32, Complex64, Complex128, Float8E4M3Fn, Float8E5M2, Float16,
-        QuantizedI4, QuantizedU8,
+        Float32, QuantizedI4, QuantizedU8,
     },
 };
 pub use ops::{

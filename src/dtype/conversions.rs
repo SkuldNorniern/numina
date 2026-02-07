@@ -4,7 +4,7 @@ use super::{
     DType,
     types::{
         BFloat8, BFloat16, Complex32, Complex64, Complex128, Float8E4M3Fn, Float8E5M2, Float16,
-        QuantizedI4, QuantizedU8,
+        Float32, QuantizedI4, QuantizedU8,
     },
 };
 
@@ -93,6 +93,12 @@ impl From<Float16> for DType {
     }
 }
 
+impl From<Float32> for DType {
+    fn from(_: Float32) -> Self {
+        DType::F32
+    }
+}
+
 impl From<Complex32> for DType {
     fn from(_: Complex32) -> Self {
         DType::Complex32
@@ -153,10 +159,10 @@ mod tests {
         let bf16 = BFloat16::from_f32(1.0);
         assert_eq!(DType::from(bf16), DType::BF16);
 
-        let qi4 = QuantizedI4::from_i8(5, 1.0);
+        let qi4 = QuantizedI4::from_i8(5_i8);
         assert_eq!(DType::from(qi4), DType::QI4);
 
-        let qu8 = QuantizedU8::quantize(2.5, 0.01);
+        let qu8 = QuantizedU8::quantize(2.5_f32, 0.01_f32);
         assert_eq!(DType::from(qu8), DType::QU8);
     }
 }

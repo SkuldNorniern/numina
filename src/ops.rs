@@ -1,11 +1,24 @@
-//! Element-wise array operations built on the `NdArray` abstraction
+//! Element-wise and pointwise array operations built on the [`NdArray`] abstraction.
+//!
+//! Most operations in this module currently require:
+//! - host-accessible memory
+//! - contiguous, row-major layout
+//!
+//! Functions return `Box<dyn NdArray>` whose concrete backend is derived from the left-hand operand
+//! (via `NdArray::zeros`).
 
 use crate::array::{
     NdArray, data_as_slice, data_as_slice_mut, ensure_binary_compat, ensure_host_accessible,
 };
 use crate::{DType, Shape};
 
-/// Element-wise addition
+/// Element-wise addition (`a + b`).
+///
+/// # Errors
+/// Returns `Err` if:
+/// - either input is not host-accessible/contiguous
+/// - shapes or dtypes do not match
+/// - the dtype is unsupported (e.g. `Bool`, quantized, complex)
 pub fn add<A, B>(a: &A, b: &B) -> Result<Box<dyn NdArray>, String>
 where
     A: NdArray,
@@ -173,7 +186,15 @@ where
     Ok(result)
 }
 
-/// Element-wise multiplication
+/// Element-wise multiplication (`a * b`).
+///
+/// Integer dtypes use wrapping multiplication.
+///
+/// # Errors
+/// Returns `Err` if:
+/// - either input is not host-accessible/contiguous
+/// - shapes or dtypes do not match
+/// - the dtype is unsupported (e.g. `Bool`, quantized, complex)
 pub fn mul<A, B>(a: &A, b: &B) -> Result<Box<dyn NdArray>, String>
 where
     A: NdArray,
@@ -341,7 +362,12 @@ where
     Ok(result)
 }
 
-/// Scalar addition
+/// Add a scalar to every element (`array + scalar`).
+///
+/// The scalar is provided as `f64` and is cast to the target dtype.
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous or the dtype is unsupported.
 pub fn add_scalar<A: NdArray>(array: &A, scalar: f64) -> Result<Box<dyn NdArray>, String> {
     ensure_host_accessible(array, "add_scalar")?;
 
@@ -420,7 +446,10 @@ pub fn add_scalar<A: NdArray>(array: &A, scalar: f64) -> Result<Box<dyn NdArray>
     Ok(result)
 }
 
-/// Element-wise exponential
+/// Element-wise exponential (`exp(x)`).
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous or if `dtype` is not float-like.
 pub fn exp<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     ensure_host_accessible(array, "exp")?;
 
@@ -499,7 +528,10 @@ pub fn exp<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     Ok(result)
 }
 
-/// Element-wise logarithm
+/// Element-wise natural logarithm (`ln(x)`).
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous or if `dtype` is not float-like.
 pub fn log<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     ensure_host_accessible(array, "log")?;
 
@@ -573,7 +605,10 @@ pub fn log<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     Ok(result)
 }
 
-/// Element-wise square root
+/// Element-wise square root (`sqrt(x)`).
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous or if `dtype` is not float-like.
 pub fn sqrt<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     ensure_host_accessible(array, "sqrt")?;
 
@@ -652,7 +687,10 @@ pub fn sqrt<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     Ok(result)
 }
 
-/// Element-wise sine
+/// Element-wise sine (`sin(x)`).
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous or if `dtype` is not float-like.
 pub fn sin<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     ensure_host_accessible(array, "sin")?;
 
@@ -726,7 +764,10 @@ pub fn sin<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     Ok(result)
 }
 
-/// Element-wise cosine
+/// Element-wise cosine (`cos(x)`).
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous or if `dtype` is not float-like.
 pub fn cos<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     ensure_host_accessible(array, "cos")?;
 
@@ -800,7 +841,10 @@ pub fn cos<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     Ok(result)
 }
 
-/// Element-wise tangent
+/// Element-wise tangent (`tan(x)`).
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous or if `dtype` is not float-like.
 pub fn tan<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     ensure_host_accessible(array, "tan")?;
 
@@ -874,7 +918,10 @@ pub fn tan<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     Ok(result)
 }
 
-/// Element-wise arcsine
+/// Element-wise arcsine (`asin(x)`).
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous or if `dtype` is not float-like.
 pub fn asin<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     ensure_host_accessible(array, "asin")?;
 
@@ -948,7 +995,10 @@ pub fn asin<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     Ok(result)
 }
 
-/// Element-wise arccosine
+/// Element-wise arccosine (`acos(x)`).
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous or if `dtype` is not float-like.
 pub fn acos<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     ensure_host_accessible(array, "acos")?;
 
@@ -1022,7 +1072,10 @@ pub fn acos<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     Ok(result)
 }
 
-/// Element-wise arctangent
+/// Element-wise arctangent (`atan(x)`).
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous or if `dtype` is not float-like.
 pub fn atan<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     ensure_host_accessible(array, "atan")?;
 
@@ -1096,7 +1149,10 @@ pub fn atan<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     Ok(result)
 }
 
-/// Element-wise power (array^exponent)
+/// Element-wise power (`array.powf(exponent)`).
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous or if `dtype` is not float-like.
 pub fn pow<A: NdArray>(array: &A, exponent: f64) -> Result<Box<dyn NdArray>, String> {
     ensure_host_accessible(array, "pow")?;
 
@@ -1170,7 +1226,10 @@ pub fn pow<A: NdArray>(array: &A, exponent: f64) -> Result<Box<dyn NdArray>, Str
     Ok(result)
 }
 
-/// Element-wise absolute value
+/// Element-wise absolute value (`abs(x)`).
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous or the dtype is unsupported.
 pub fn abs<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     ensure_host_accessible(array, "abs")?;
 
@@ -1294,7 +1353,10 @@ pub fn abs<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     Ok(result)
 }
 
-/// Element-wise sign function
+/// Element-wise sign function (`-1`, `0`, `1`).
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous or the dtype is unsupported.
 pub fn sign<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     ensure_host_accessible(array, "sign")?;
 
@@ -1465,7 +1527,17 @@ pub fn sign<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     Ok(result)
 }
 
-/// Matrix multiplication (2D arrays)
+/// Matrix multiplication of two 2D arrays.
+///
+/// Input shapes must be `(m, k)` and `(k, n)`; output is `(m, n)`.
+///
+/// # Errors
+/// Returns `Err` if:
+/// - either input is not host-accessible/contiguous
+/// - dtypes do not match
+/// - inputs are not 2D
+/// - inner dimensions do not match
+/// - dtype is unsupported
 pub fn matmul<A, B>(a: &A, b: &B) -> Result<Box<dyn NdArray>, String>
 where
     A: NdArray,

@@ -1,9 +1,15 @@
-//! Reduction operations (sum, mean, max, min, etc.)
+//! Reduction operations (sum, mean, max, min, prod, ...).
+//!
+//! Like other host-side ops, these currently require host-accessible, contiguous storage.
 
 use crate::array::{NdArray, data_as_slice, data_as_slice_mut, ensure_host_accessible};
 use crate::{DType, Shape};
 
-/// Sum reduction along specified axis (or all axes if None)
+/// Sum reduction along `axis`, or over all elements when `axis` is `None`.
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous, the axis is out of bounds, or
+/// the dtype/shape combination is unsupported.
 pub fn sum<A: NdArray>(array: &A, axis: Option<usize>) -> Result<Box<dyn NdArray>, String> {
     ensure_host_accessible(array, "sum")?;
 
@@ -411,7 +417,11 @@ fn sum_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     Ok(result)
 }
 
-/// Mean reduction
+/// Mean reduction along `axis`, or over all elements when `axis` is `None`.
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous, the axis is out of bounds, or
+/// the dtype/shape combination is unsupported.
 pub fn mean<A: NdArray>(array: &A, axis: Option<usize>) -> Result<Box<dyn NdArray>, String> {
     let sum_result = sum(array, axis)?;
     let count = match axis {
@@ -551,7 +561,11 @@ pub fn mean<A: NdArray>(array: &A, axis: Option<usize>) -> Result<Box<dyn NdArra
     Ok(result)
 }
 
-/// Maximum value
+/// Maximum reduction along `axis`, or over all elements when `axis` is `None`.
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous, the axis is out of bounds, or
+/// the dtype/shape combination is unsupported.
 pub fn max<A: NdArray>(array: &A, axis: Option<usize>) -> Result<Box<dyn NdArray>, String> {
     ensure_host_accessible(array, "max")?;
 
@@ -854,7 +868,11 @@ fn max_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     Ok(result)
 }
 
-/// Minimum value
+/// Minimum reduction along `axis`, or over all elements when `axis` is `None`.
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous, the axis is out of bounds, or
+/// the dtype/shape combination is unsupported.
 pub fn min<A: NdArray>(array: &A, axis: Option<usize>) -> Result<Box<dyn NdArray>, String> {
     ensure_host_accessible(array, "min")?;
 
@@ -1102,7 +1120,11 @@ fn min_all<A: NdArray>(array: &A) -> Result<Box<dyn NdArray>, String> {
     Ok(result)
 }
 
-/// Product of all elements
+/// Product reduction along `axis`, or over all elements when `axis` is `None`.
+///
+/// # Errors
+/// Returns `Err` if the backend is not host-accessible/contiguous, the axis is out of bounds, or
+/// the dtype/shape combination is unsupported.
 pub fn prod<A: NdArray>(array: &A, axis: Option<usize>) -> Result<Box<dyn NdArray>, String> {
     ensure_host_accessible(array, "prod")?;
 

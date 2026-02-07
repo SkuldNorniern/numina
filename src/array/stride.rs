@@ -1,3 +1,8 @@
+//! Array strides (memory layout).
+//!
+//! A [`Strides`] value maps multi-dimensional indices to a flat (row-major) offset. Strides are
+//! expressed in **elements**, not bytes.
+
 use crate::array::Shape;
 
 /// Represents memory layout strides
